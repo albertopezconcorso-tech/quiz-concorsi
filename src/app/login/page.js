@@ -38,7 +38,6 @@ export default function LoginPage() {
             🏛️
           </div>
           <h1 className="text-xl font-black text-[#F8FAFC] tracking-wide">QUIZ CONCORSI</h1>
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wider mt-0.5">Accademia Ufficiale</p>
           <p className="text-[#94A3B8] text-xs mt-3">Accedi con le credenziali fornite dal docente</p>
         </div>
 
