@@ -81,16 +81,16 @@ export default function Home() {
               <span>📚</span> Le mie materie
             </a>
             <Link
-              href={materie.length > 0 ? `/quiz/${materie[0].id}` : '#'}
+              href="/simulazione"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all"
             >
-              <span>▶️</span> Simulazioni
+              <span>⚙️</span> Simulazione su Misura
             </Link>
             <Link
               href="/admin"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all mt-4 border-t border-[#434B57] pt-4"
             >
-              <span>⚙️</span> Pannello Admin
+              <span>🔒</span> Pannello Admin
             </Link>
           </nav>
         </div>
@@ -107,7 +107,6 @@ export default function Home() {
 
       {/* CONTENUTO PRINCIPALE */}
       <main className="flex-1 p-6 lg:p-10 max-w-6xl overflow-y-auto">
-        {/* HEADER BENVENUTO */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-2xl font-black text-[#F8FAFC]">
@@ -124,9 +123,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* GRIGLIA DASHBOARD: BANNER + STATISTICHE */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          {/* BANNER CENTRALE */}
           <div className="lg:col-span-2 bg-[#3B332B] border border-[#855325] rounded-3xl p-6 lg:p-8 flex flex-col justify-between relative overflow-hidden shadow-md">
             <div className="relative z-10">
               <span className="inline-block px-3 py-1 bg-[#261E17] border border-amber-500/40 text-amber-400 font-bold text-[11px] rounded-full mb-4">
@@ -143,19 +140,16 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="relative z-10">
-              {materie.length > 0 && (
-                <Link
-                  href={`/quiz/${materie[0].id}`}
-                  className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-extrabold px-6 py-3 rounded-2xl text-xs tracking-wide transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
-                >
-                  ▶ Inizia un quiz
-                </Link>
-              )}
+            <div className="relative z-10 flex flex-wrap gap-3">
+              <Link
+                href="/simulazione"
+                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-extrabold px-6 py-3 rounded-2xl text-xs tracking-wide transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
+              >
+                ▶ Componi Simulazione (Multimateria)
+              </Link>
             </div>
           </div>
 
-          {/* COLONNA STATISTICHE & AZIONI RAPIDE */}
           <div className="flex flex-col gap-4">
             <div className="bg-[#2E343D] border border-[#434B57] p-5 rounded-3xl">
               <h4 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-4">📊 Le tue statistiche</h4>
@@ -185,15 +179,13 @@ export default function Home() {
 
             <div className="bg-[#2E343D] border border-[#434B57] p-4 rounded-3xl flex flex-col gap-2">
               <span className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Azioni rapide</span>
-              {materie.length > 0 && (
-                <Link
-                  href={`/quiz/${materie[0].id}`}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
-                >
-                  <span className="flex items-center gap-2">⚡ Esercitazione rapida</span>
-                  <span className="text-amber-400">→</span>
-                </Link>
-              )}
+              <Link
+                href="/simulazione"
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
+              >
+                <span className="flex items-center gap-2">⚙️ Test Multimateria Personalizzato</span>
+                <span className="text-amber-400">→</span>
+              </Link>
               <Link
                 href="/admin"
                 className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
@@ -205,12 +197,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* SEZIONE MATERIE */}
         <div id="materie-sezione" className="pt-2">
           <div className="flex justify-between items-end mb-5">
             <div>
-              <h3 className="text-lg font-black text-[#F8FAFC]">📖 Le materie</h3>
-              <p className="text-xs text-[#94A3B8]">Scegli la materia su cui vuoi esercitarti</p>
+              <h3 className="text-lg font-black text-[#F8FAFC]">📖 Allenamento Singola Materia</h3>
+              <p className="text-xs text-[#94A3B8]">Domande estratte in modo casuale ad ogni avvio</p>
             </div>
           </div>
 
@@ -228,13 +219,13 @@ export default function Home() {
                     {materia.nome}
                   </h4>
                   <p className="text-[11px] text-[#94A3B8] mt-1 leading-relaxed line-clamp-2">
-                    {materia.descrizione || `Esercitati con i quiz ufficiali dedicati a ${materia.nome}.`}
+                    {materia.descrizione || `Esercitati con i quiz casuali dedicati a ${materia.nome}.`}
                   </p>
                 </div>
 
                 <div className="pt-5 mt-4 border-t border-[#434B57]/60 flex items-center justify-between text-xs font-bold text-amber-400">
                   <Link href={`/quiz/${materia.id}`} className="hover:underline flex items-center gap-1">
-                    Inizia sessione <span>→</span>
+                    Avvia Quiz Casuale <span>→</span>
                   </Link>
                 </div>
               </div>
