@@ -64,7 +64,6 @@ export default function Home() {
             </div>
             <div>
               <h1 className="font-extrabold text-sm tracking-wider uppercase text-[#F8FAFC]">Quiz Concorsi</h1>
-              <p className="text-[11px] text-amber-400 font-semibold">Accademia Ufficiale</p>
             </div>
           </div>
 
@@ -133,11 +132,14 @@ export default function Home() {
               <span className="inline-block px-3 py-1 bg-[#261E17] border border-amber-500/40 text-amber-400 font-bold text-[11px] rounded-full mb-4">
                 🎯 Concorsi Pubblici Italia
               </span>
-              <h3 className="text-xl lg:text-2xl font-black text-[#FFFBEB] mb-2 leading-snug">
+              <h3 className="text-xl lg:text-2xl font-black text-[#FFFBEB] mb-3 leading-snug">
                 Il tuo obiettivo, la tua preparazione.
               </h3>
-              <p className="text-xs text-[#D6D3D1] max-w-md mb-6 leading-relaxed">
-                Studia, metti alla prova le tue conoscenze e raggiungi i tuoi obiettivi. Ogni quiz ti avvicina al traguardo.
+              <p className="text-sm italic text-[#E2E8F0] max-w-lg mb-1 leading-relaxed">
+                &ldquo;Ogni fallimento è semplicemente un&apos;opportunità per ricominciare in modo più intelligente.&rdquo;
+              </p>
+              <p className="text-xs font-semibold text-amber-400 mb-6">
+                — Henry Ford
               </p>
             </div>
 
