@@ -271,7 +271,7 @@ export default function AdminPage() {
         if (domandeFormattate.length === 0) {
           setMessaggioImport('⚠️ Nessuna domanda valida trovata nel file.');
         } else {
-          setMessaggioImport(`📊 Lette con successo ${domandeFormattate.length} domande pronte per l\'importazione!`);
+          setMessaggioImport(`📊 Lette con successo ${domandeFormattate.length} domande pronte per l'importazione!`);
         }
       } catch (err) {
         setMessaggioImport('❌ Errore durante la lettura del file: ' + err.message);
@@ -326,33 +326,33 @@ export default function AdminPage() {
 
   if (!autenticato) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-sm bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-3">
+      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-sm bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl mx-auto mb-3">
             ⚙️
           </div>
-          <h1 className="text-xl font-bold text-slate-800 mb-1">Accesso Amministratore</h1>
-          <p className="text-slate-400 text-xs mb-6">Inserisci la password di sicurezza</p>
+          <h1 className="text-xl font-bold text-[#F8FAFC] mb-1">Accesso Amministratore</h1>
+          <p className="text-[#94A3B8] text-xs mb-6">Inserisci la password di sicurezza</p>
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <input
               type="password"
               placeholder="Password..."
               value={inputPassword}
               onChange={(e) => setInputPassword(e.target.value)}
-              className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-center text-sm focus:outline-none focus:border-amber-500"
               required
             />
             {errorePassword && (
-              <p className="text-rose-500 text-xs font-semibold">Password errata. Riprova.</p>
+              <p className="text-rose-400 text-xs font-semibold">Password errata. Riprova.</p>
             )}
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] cursor-pointer"
+              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
             >
               Sblocca Pannello
             </button>
           </form>
-          <Link href="/login" className="inline-block mt-5 text-xs text-slate-400 hover:text-blue-600 transition-colors">
+          <Link href="/login" className="inline-block mt-5 text-xs text-[#94A3B8] hover:text-amber-400 transition-colors">
             ← Torna al Login Studenti
           </Link>
         </div>
@@ -361,29 +361,29 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans flex flex-col items-center">
+    <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
       <div className="w-full max-w-3xl">
-        {/* Intestazione */}
-        <div className="flex justify-between items-center mb-8 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* INTESTAZIONE */}
+        <div className="flex justify-between items-center mb-8 bg-[#2E343D] p-5 rounded-2xl border border-[#434B57] shadow-sm">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900">Gestione Piattaforma Quiz</h1>
-              <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
+              <h1 className="text-xl font-black text-[#F8FAFC]">Gestione Piattaforma Quiz</h1>
+              <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold px-2 py-0.5 rounded-full">
                 Admin Attivo
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Gestisci studenti, materie e banca dati quesiti</p>
+            <p className="text-xs text-[#94A3B8] mt-0.5">Gestisci studenti, materie e banca dati quesiti</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleLogout}
-              className="text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200/80 px-3.5 py-2 rounded-xl hover:bg-rose-100 transition-all cursor-pointer"
+              className="text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3.5 py-2 rounded-xl hover:bg-rose-500/20 transition-all cursor-pointer"
             >
               Esci
             </button>
             <Link
               href="/"
-              className="text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl hover:bg-slate-100 transition-all"
+              className="text-xs font-semibold bg-[#23272D] text-[#F8FAFC] border border-[#434B57] px-3.5 py-2 rounded-xl hover:border-amber-500/50 transition-all"
             >
               Vai alla Home
             </Link>
@@ -391,12 +391,12 @@ export default function AdminPage() {
         </div>
 
         {/* SEZIONE 1: CREA STUDENTE */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-8 shadow-xs">
+        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">👤</span>
+            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">👤</span>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Crea Nuovo Account Studente</h2>
-              <p className="text-xs text-slate-400">Genera le credenziali di accesso per un corsista</p>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Crea Nuovo Account Studente</h2>
+              <p className="text-xs text-[#94A3B8]">Genera le credenziali di accesso per un corsista</p>
             </div>
           </div>
           <form onSubmit={creaStudente} className="flex flex-col sm:flex-row gap-3">
@@ -405,7 +405,7 @@ export default function AdminPage() {
               placeholder="Email corsista"
               value={emailStudente}
               onChange={(e) => setEmailStudente(e.target.value)}
-              className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               required
             />
             <input
@@ -413,39 +413,39 @@ export default function AdminPage() {
               placeholder="Password (min 6 car.)"
               value={passStudente}
               onChange={(e) => setPassStudente(e.target.value)}
-              className="w-full sm:w-56 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full sm:w-56 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               required
             />
             <button
               type="submit"
               disabled={caricamentoStudente}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-600/20 active:scale-[0.99] cursor-pointer shrink-0 disabled:opacity-50"
+              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer shrink-0 disabled:opacity-50"
             >
               {caricamentoStudente ? 'Creazione...' : 'Crea Account'}
             </button>
           </form>
-          {messaggioStudente && <p className="text-xs font-semibold mt-3 text-slate-700">{messaggioStudente}</p>}
+          {messaggioStudente && <p className="text-xs font-semibold mt-3 text-amber-300">{messaggioStudente}</p>}
         </div>
 
         {/* SEZIONE 2: IMPORTAZIONE MASSIVA EXCEL */}
-        <div className="bg-white p-6 rounded-3xl border-2 border-emerald-200/80 mb-8 shadow-xs">
+        <div className="bg-[#2E343D] p-6 rounded-3xl border border-amber-500/40 mb-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-2">
-            <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">📊</span>
+            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📊</span>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Importazione Massiva da Excel o CSV</h2>
-              <p className="text-xs text-slate-400">Carica centinaia di domande con un clic tramite il template</p>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Importazione Massiva da Excel o CSV</h2>
+              <p className="text-xs text-[#94A3B8]">Carica centinaia di domande con un clic tramite il template</p>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="bg-[#23272D] p-4 rounded-2xl border border-[#434B57] my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-[#94A3B8] block mb-1">
                 Materia di destinazione predefinita:
               </label>
               <select
                 value={materiaImport}
                 onChange={(e) => setMateriaImport(e.target.value)}
-                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full p-2.5 bg-[#2E343D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-xs font-semibold focus:outline-none focus:border-amber-500"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -453,13 +453,13 @@ export default function AdminPage() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-slate-400 block mt-1">
+              <span className="text-[10px] text-[#94A3B8] block mt-1">
                 * Se nel file Excel hai compilato la colonna Materia, verrà assegnata automaticamente.
               </span>
             </div>
 
             <div className="w-full sm:w-auto">
-              <label className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 active:scale-[0.99] cursor-pointer inline-flex items-center gap-2">
+              <label className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer inline-flex items-center gap-2">
                 <span>📁</span> Scegli File Excel / CSV
                 <input
                   type="file"
@@ -472,21 +472,21 @@ export default function AdminPage() {
           </div>
 
           {nomeFileCaricato && (
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between text-xs text-emerald-800 mb-3">
+            <div className="p-3 bg-[#3D2E1E] rounded-xl border border-amber-500/30 flex items-center justify-between text-xs text-amber-300 mb-3">
               <span>File selezionato: <strong>{nomeFileCaricato}</strong></span>
               <span className="font-bold">{anteprimaDomande.length} quesiti rilevati</span>
             </div>
           )}
 
           {messaggioImport && (
-            <p className="text-xs font-semibold mb-3 text-slate-700">{messaggioImport}</p>
+            <p className="text-xs font-semibold mb-3 text-amber-300">{messaggioImport}</p>
           )}
 
           {anteprimaDomande.length > 0 && (
             <button
               onClick={confermaImportazione}
               disabled={caricamentoMassivo}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
             >
               {caricamentoMassivo
                 ? 'Inserimento in corso nel Database...'
@@ -496,12 +496,12 @@ export default function AdminPage() {
         </div>
 
         {/* SEZIONE 3: GESTIONE ED ELIMINAZIONE MATERIE */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-8 shadow-xs">
+        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">📚</span>
+            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📚</span>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Materie d&apos;Esame Attive</h2>
-              <p className="text-xs text-slate-400">Aggiungi nuove materie o elimina quelle non necessarie</p>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Materie d&apos;Esame Attive</h2>
+              <p className="text-xs text-[#94A3B8]">Aggiungi nuove materie o elimina quelle non necessarie</p>
             </div>
           </div>
 
@@ -509,12 +509,12 @@ export default function AdminPage() {
             {materie.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/70"
+                className="flex items-center justify-between p-3 bg-[#23272D] rounded-xl border border-[#434B57]"
               >
                 <div>
-                  <span className="text-xs font-bold text-slate-800">{m.nome}</span>
+                  <span className="text-xs font-bold text-[#F8FAFC]">{m.nome}</span>
                   {m.descrizione && (
-                    <span className="block text-[10px] text-slate-400 truncate max-w-[180px]">
+                    <span className="block text-[10px] text-[#94A3B8] truncate max-w-[180px]">
                       {m.descrizione}
                     </span>
                   )}
@@ -522,7 +522,7 @@ export default function AdminPage() {
                 <button
                   onClick={() => eliminaMateria(m.id, m.nome)}
                   title={`Elimina ${m.nome}`}
-                  className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all cursor-pointer text-xs"
+                  className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer text-xs"
                 >
                   🗑️
                 </button>
@@ -530,14 +530,14 @@ export default function AdminPage() {
             ))}
           </div>
 
-          <form onSubmit={aggiungiMateria} className="flex flex-col gap-3 pt-3 border-t border-slate-100">
+          <form onSubmit={aggiungiMateria} className="flex flex-col gap-3 pt-3 border-t border-[#434B57]">
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 placeholder="Nuova Materia (es. Diritto)"
                 value={nuovaMateria}
                 onChange={(e) => setNuovaMateria(e.target.value)}
-                className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
                 required
               />
               <input
@@ -545,32 +545,32 @@ export default function AdminPage() {
                 placeholder="Breve descrizione (facoltativa)"
                 value={descMateria}
                 onChange={(e) => setDescMateria(e.target.value)}
-                className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               />
               <button
                 type="submit"
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-600/20 active:scale-[0.99] cursor-pointer shrink-0"
+                className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer shrink-0"
               >
                 Aggiungi
               </button>
             </div>
-            {messaggioMateria && <p className="text-xs font-semibold text-slate-700">{messaggioMateria}</p>}
+            {messaggioMateria && <p className="text-xs font-semibold text-amber-300">{messaggioMateria}</p>}
           </form>
         </div>
 
         {/* SEZIONE 4: AGGIUNGI SINGOLA DOMANDA */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-8 shadow-xs">
+        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">📝</span>
-            <h2 className="text-base font-bold text-slate-900">Aggiungi Singola Domanda</h2>
+            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📝</span>
+            <h2 className="text-base font-bold text-[#F8FAFC]">Aggiungi Singola Domanda</h2>
           </div>
           <form onSubmit={aggiungiDomanda} className="flex flex-col gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Seleziona la materia:</label>
+              <label className="text-xs font-semibold text-[#94A3B8] block mb-1">Seleziona la materia:</label>
               <select
                 value={materiaScelta}
                 onChange={(e) => setMateriaScelta(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -585,7 +585,7 @@ export default function AdminPage() {
               placeholder="Scrivi qui il quesito d'esame..."
               value={testoDomanda}
               onChange={(e) => setTestoDomanda(e.target.value)}
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               required
             />
 
@@ -595,7 +595,7 @@ export default function AdminPage() {
                 placeholder="Opzione A"
                 value={opzioneA}
                 onChange={(e) => setOpzioneA(e.target.value)}
-                className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm"
+                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
                 required
               />
               <input
@@ -603,7 +603,7 @@ export default function AdminPage() {
                 placeholder="Opzione B"
                 value={opzioneB}
                 onChange={(e) => setOpzioneB(e.target.value)}
-                className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm"
+                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
                 required
               />
               <input
@@ -611,23 +611,23 @@ export default function AdminPage() {
                 placeholder="Opzione C (facoltativa)"
                 value={opzioneC}
                 onChange={(e) => setOpzioneC(e.target.value)}
-                className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm"
+                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
               />
               <input
                 type="text"
                 placeholder="Opzione D (facoltativa)"
                 value={opzioneD}
                 onChange={(e) => setOpzioneD(e.target.value)}
-                className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm"
+                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Risposta Corretta:</label>
+              <label className="text-xs font-semibold text-[#94A3B8] block mb-1">Risposta Corretta:</label>
               <select
                 value={rispostaEsatta}
                 onChange={(e) => setRispostaEsatta(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
               >
                 <option value="A">Opzione A</option>
                 <option value="B">Opzione B</option>
@@ -641,27 +641,27 @@ export default function AdminPage() {
               placeholder="Spiegazione didattica (Tasto Spiegamelo)..."
               value={spiegazione}
               onChange={(e) => setSpiegazione(e.target.value)}
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
             />
 
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] cursor-pointer"
+              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
             >
               Salva Domanda
             </button>
-            {messaggioDomanda && <p className="text-xs font-semibold text-slate-700">{messaggioDomanda}</p>}
+            {messaggioDomanda && <p className="text-xs font-semibold text-amber-300">{messaggioDomanda}</p>}
           </form>
         </div>
 
         {/* SEZIONE 5: BANCA DATI ED ELIMINAZIONE */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">🗂️</span>
+              <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">🗂️</span>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Banca Dati Domande</h2>
-                <p className="text-xs text-slate-400">Visualizza ed elimina i quesiti nel database</p>
+                <h2 className="text-base font-bold text-[#F8FAFC]">Banca Dati Domande</h2>
+                <p className="text-xs text-[#94A3B8]">Visualizza ed elimina i quesiti nel database</p>
               </div>
             </div>
 
@@ -672,7 +672,7 @@ export default function AdminPage() {
                   setMateriaFiltro(e.target.value);
                   caricaDomandePerMateria(e.target.value);
                 }}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full p-2.5 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-xs font-semibold focus:outline-none focus:border-amber-500"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -684,41 +684,41 @@ export default function AdminPage() {
           </div>
 
           {caricamentoDomande ? (
-            <div className="text-center py-8 text-xs text-slate-400">Caricamento quesiti...</div>
+            <div className="text-center py-8 text-xs text-[#94A3B8]">Caricamento quesiti...</div>
           ) : elencoDomande.length === 0 ? (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-xs text-slate-400">Nessuna domanda presente per questa materia.</p>
+            <div className="text-center py-8 bg-[#23272D] rounded-2xl border border-dashed border-[#434B57]">
+              <p className="text-xs text-[#94A3B8]">Nessuna domanda presente per questa materia.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              <div className="text-xs text-slate-500 font-medium mb-1">
+              <div className="text-xs text-[#94A3B8] font-medium mb-1">
                 Trovate <strong>{elencoDomande.length}</strong> domande:
               </div>
               {elencoDomande.map((d, index) => (
                 <div
                   key={d.id}
-                  className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-all flex items-start justify-between gap-4"
+                  className="p-4 rounded-2xl border border-[#434B57] bg-[#23272D] flex items-start justify-between gap-4"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[11px] font-bold bg-white text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">
+                      <span className="text-[11px] font-bold bg-[#2E343D] text-[#F8FAFC] px-2 py-0.5 rounded-md border border-[#434B57]">
                         #{index + 1}
                       </span>
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/30">
                         Esatta: {d.risposta_esatta}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800 leading-snug mb-2">{d.testo}</p>
+                    <p className="text-xs font-semibold text-[#F8FAFC] leading-snug mb-2">{d.testo}</p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-600">
-                      <span><strong>A:</strong> {d.opzione_a}</span>
-                      <span><strong>B:</strong> {d.opzione_b}</span>
-                      {d.opzione_c && <span><strong>C:</strong> {d.opzione_c}</span>}
-                      {d.opzione_d && <span><strong>D:</strong> {d.opzione_d}</span>}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-[#94A3B8]">
+                      <span><strong className="text-[#F8FAFC]">A:</strong> {d.opzione_a}</span>
+                      <span><strong className="text-[#F8FAFC]">B:</strong> {d.opzione_b}</span>
+                      {d.opzione_c && <span><strong className="text-[#F8FAFC]">C:</strong> {d.opzione_c}</span>}
+                      {d.opzione_d && <span><strong className="text-[#F8FAFC]">D:</strong> {d.opzione_d}</span>}
                     </div>
 
                     {d.spiegazione && (
-                      <div className="mt-2 text-[11px] text-amber-800 bg-amber-50/60 p-2 rounded-lg border border-amber-100">
+                      <div className="mt-2 text-[11px] text-amber-300 bg-[#3D2E1E] p-2.5 rounded-xl border border-amber-500/30">
                         <strong>💡 Spiegazione:</strong> {d.spiegazione}
                       </div>
                     )}
@@ -727,7 +727,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => eliminaDomanda(d.id)}
                     title="Elimina domanda"
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-200 shrink-0 cursor-pointer"
+                    className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/20 shrink-0 cursor-pointer"
                   >
                     🗑️
                   </button>

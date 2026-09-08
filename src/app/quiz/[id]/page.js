@@ -6,201 +6,196 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function QuizPage({ params }) {
-  const unwrappedParams = use(params);
-  const materiaId = unwrappedParams.id;
   const router = useRouter();
+  const unwrappedParams = use(params);
+  const materiaId = unwrappedParams?.id;
 
-  const [utente, setUtente] = useState(null);
-  const [nomeMateria, setNomeMateria] = useState('');
-  const [domandeOriginali, setDomandeOriginali] = useState([]);
   const [domande, setDomande] = useState([]);
+  const [materia, setMateria] = useState(null);
   const [indiceCorrente, setIndiceCorrente] = useState(0);
-  const [rispostaSelezionata, setRispostaSelezionata] = useState(null);
+  const [risposteUtente, setRisposteUtente] = useState({});
   const [mostraSpiegazione, setMostraSpiegazione] = useState(false);
   const [caricamento, setCaricamento] = useState(true);
-
-  // Risultati e tracciamento errori
-  const [corrette, setCorrette] = useState(0);
-  const [errori, setErrori] = useState(0);
-  const [quesitiSbagliati, setQuesitiSbagliati] = useState([]);
-  const [modalitaRipasso, setModalitaRipasso] = useState(false);
-  const [quizTerminato, setQuizTerminato] = useState(false);
+  const [quizFinito, setQuizFinito] = useState(false);
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
 
   useEffect(() => {
-    async function caricaDati() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    async function initQuiz() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         router.push('/login');
         return;
       }
-      setUtente(user);
 
-      const { data: mData } = await supabase
+      // Recupera dettagli della materia
+      const { data: matData } = await supabase
         .from('materie')
-        .select('nome')
+        .select('*')
         .eq('id', materiaId)
         .single();
-      if (mData) setNomeMateria(mData.nome);
+      if (matData) setMateria(matData);
 
-      const { data, error } = await supabase
+      // Recupera domande della materia (massimo 30 a sessione, ordinate)
+      const { data: qData, error } = await supabase
         .from('domande')
         .select('*')
-        .eq('materia_id', materiaId);
+        .eq('materia_id', materiaId)
+        .order('id', { ascending: true })
+        .limit(30);
 
-      if (!error && data) {
-        setDomandeOriginali(data);
-        setDomande(data);
+      if (!error && qData) {
+        setDomande(qData);
       }
       setCaricamento(false);
     }
 
-    caricaDati();
+    if (materiaId) {
+      initQuiz();
+    }
   }, [materiaId, router]);
 
-  const gestisciScelta = (lettera) => {
-    if (rispostaSelezionata !== null) return;
-    setRispostaSelezionata(lettera);
+  const domandaAttuale = domande[indiceCorrente];
 
-    const domandaAttuale = domande[indiceCorrente];
-    const isCorretta = lettera === domandaAttuale.risposta_esatta;
+  const selezionaRisposta = (lettera) => {
+    if (risposteUtente[indiceCorrente] !== undefined) return; // Non modificabile dopo la scelta
 
-    if (isCorretta) {
-      setCorrette((prev) => prev + 1);
-    } else {
-      setErrori((prev) => prev + 1);
-      if (!modalitaRipasso) {
-        setQuesitiSbagliati((prev) => [...prev, domandaAttuale]);
-      }
-    }
+    setRisposteUtente((prev) => ({
+      ...prev,
+      [indiceCorrente]: lettera,
+    }));
   };
 
   const prossimaDomanda = async () => {
-    setRispostaSelezionata(null);
     setMostraSpiegazione(false);
-
-    if (indiceCorrente + 1 < domande.length) {
+    if (indiceCorrente < domande.length - 1) {
       setIndiceCorrente((prev) => prev + 1);
     } else {
-      // Salva nella tabella progressi se sessione normale
-      if (!modalitaRipasso && utente) {
-        setSalvataggioInCorso(true);
-        await supabase.from('progressi').insert([
-          {
-            user_id: utente.id,
-            materia_id: parseInt(materiaId, 10),
-            punteggio: corrette,
-            totale_domande: domande.length,
-            errori: errori,
-          },
-        ]);
-        setSalvataggioInCorso(false);
-      }
-      setQuizTerminato(true);
+      await calcolaEConcludi();
     }
   };
 
-  const avviaRipassoErrori = () => {
-    setDomande([...quesitiSbagliati]);
-    setIndiceCorrente(0);
-    setCorrette(0);
-    setErrori(0);
-    setRispostaSelezionata(null);
+  const domandaPrecedente = () => {
     setMostraSpiegazione(false);
-    setModalitaRipasso(true);
-    setQuizTerminato(false);
+    if (indiceCorrente > 0) {
+      setIndiceCorrente((prev) => prev - 1);
+    }
   };
 
-  const riavviaQuizCompleto = () => {
-    setDomande([...domandeOriginali]);
-    setIndiceCorrente(0);
-    setCorrette(0);
-    setErrori(0);
-    setQuesitiSbagliati([]);
-    setRispostaSelezionata(null);
-    setMostraSpiegazione(false);
-    setModalitaRipasso(false);
-    setQuizTerminato(false);
+  const calcolaEConcludi = async () => {
+    setSalvataggioInCorso(true);
+    let corrette = 0;
+    let errate = 0;
+
+    domande.forEach((d, idx) => {
+      const dataRisposta = risposteUtente[idx];
+      if (dataRisposta === d.risposta_esatta) {
+        corrette++;
+      } else if (dataRisposta !== undefined) {
+        errate++;
+      }
+    });
+
+    const punteggio = Math.round((corrette / domande.length) * 100);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase.from('risultati_quiz').insert([
+        {
+          user_id: session.user.id,
+          materia_id: materiaId,
+          totale_domande: domande.length,
+          risposte_esatte: corrette,
+          risposte_errate: errate,
+          punteggio_percentuale: punteggio,
+        },
+      ]);
+    }
+
+    setQuizFinito(true);
+    setSalvataggioInCorso(false);
   };
 
   if (caricamento) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center font-sans text-slate-500 font-medium">
-        Caricamento sessione di studio...
+      <main className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-400 font-bold font-sans">
+        Caricamento sessione d&apos;esame...
       </main>
     );
   }
 
-  if (domande.length === 0 && !quizTerminato) {
+  if (domande.length === 0) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center">
-          <span className="text-4xl mb-3 block">📭</span>
-          <h2 className="text-lg font-bold text-slate-800 mb-1">Nessun quiz presente</h2>
-          <p className="text-xs text-slate-400 mb-6">Non ci sono quesiti registrati per questa materia.</p>
-          <div className="flex flex-col gap-2">
-            <Link href="/" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20">
-              Torna alla Dashboard
-            </Link>
-            <Link href="/admin" className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all">
-              Aggiungi domande da Admin
-            </Link>
-          </div>
+      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-6 font-sans">
+        <div className="bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] max-w-md text-center shadow-xl">
+          <div className="text-3xl mb-3">📭</div>
+          <h2 className="text-lg font-bold mb-2 text-[#F8FAFC]">Nessuna domanda presente</h2>
+          <p className="text-xs text-[#94A3B8] mb-6">
+            Non sono ancora stati inseriti quesiti per la materia <strong>{materia?.nome || 'selezionata'}</strong>.
+          </p>
+          <Link
+            href="/"
+            className="inline-block bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-6 py-3 rounded-xl text-xs transition-all"
+          >
+            Torna alla Home
+          </Link>
         </div>
       </main>
     );
   }
 
-  // SCHERMATA FINALE CON OPZIONE RIPASSO ERRORI
-  if (quizTerminato) {
+  if (quizFinito) {
+    let corrette = 0;
+    let errate = 0;
+    domande.forEach((d, idx) => {
+      if (risposteUtente[idx] === d.risposta_esatta) corrette++;
+      else if (risposteUtente[idx] !== undefined) errate++;
+    });
+    const nonRisposte = domande.length - (corrette + errate);
     const percentuale = Math.round((corrette / domande.length) * 100);
+
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center">
-          <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-4">
-            {modalitaRipasso ? '🎯' : '🎉'}
+      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-md bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-3xl mx-auto mb-4">
+            🏆
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-1">
-            {modalitaRipasso ? 'Ripasso Concluso!' : 'Sessione Completata!'}
-          </h2>
-          <p className="text-xs text-slate-500 mb-6">
-            {modalitaRipasso ? 'Hai revisionato le domande critiche.' : 'Il risultato è stato registrato nelle statistiche.'}
-          </p>
+          <h1 className="text-2xl font-black text-[#F8FAFC] mb-1">Simulazione Conclusa!</h1>
+          <p className="text-xs text-[#94A3B8] mb-6">Materia: <strong className="text-amber-400">{materia?.nome}</strong></p>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-              <div className="text-lg font-black text-emerald-600">{corrette}</div>
-              <div className="text-[11px] font-semibold text-slate-500">Corrette</div>
-            </div>
-            <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
-              <div className="text-lg font-black text-rose-600">{errori}</div>
-              <div className="text-[11px] font-semibold text-slate-500">Errori</div>
-            </div>
-            <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100">
-              <div className="text-lg font-black text-blue-600">{percentuale}%</div>
-              <div className="text-[11px] font-semibold text-slate-500">Punteggio</div>
-            </div>
+          <div className="p-5 bg-[#23272D] rounded-2xl border border-[#434B57] mb-6">
+            <div className="text-4xl font-black text-amber-400 mb-1">{percentuale}%</div>
+            <p className="text-[11px] text-[#94A3B8] uppercase tracking-wider font-bold">Punteggio Complessivo</p>
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            {!modalitaRipasso && quesitiSbagliati.length > 0 && (
-              <button
-                onClick={avviaRipassoErrori}
-                className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-rose-600/20 active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>🔄</span> Ripassa solo i {quesitiSbagliati.length} errori commessi
-              </button>
-            )}
+          <div className="grid grid-cols-3 gap-2 text-center mb-8">
+            <div className="p-3 bg-[#23272D] rounded-xl border border-emerald-500/30">
+              <div className="text-emerald-400 text-lg font-black">{corrette}</div>
+              <div className="text-[10px] text-[#94A3B8]">Esatte</div>
+            </div>
+            <div className="p-3 bg-[#23272D] rounded-xl border border-rose-500/30">
+              <div className="text-rose-400 text-lg font-black">{errate}</div>
+              <div className="text-[10px] text-[#94A3B8]">Errate</div>
+            </div>
+            <div className="p-3 bg-[#23272D] rounded-xl border border-[#434B57]">
+              <div className="text-[#94A3B8] text-lg font-black">{nonRisposte}</div>
+              <div className="text-[10px] text-[#94A3B8]">Saltate</div>
+            </div>
+          </div>
 
+          <div className="flex flex-col gap-3">
             <button
-              onClick={riavviaQuizCompleto}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] cursor-pointer"
+              onClick={() => {
+                setRisposteUtente({});
+                setIndiceCorrente(0);
+                setQuizFinito(false);
+              }}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
             >
-              Riprova quiz completo
+              Ripeti Questa Sessione
             </button>
             <Link
               href="/"
-              className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl text-xs transition-all"
+              className="w-full bg-[#23272D] hover:border-amber-500/50 text-[#F8FAFC] font-bold py-3.5 rounded-xl text-xs border border-[#434B57] transition-all text-center"
             >
               Torna alla Dashboard
             </Link>
@@ -210,118 +205,148 @@ export default function QuizPage({ params }) {
     );
   }
 
-  const domandaAttuale = domande[indiceCorrente];
-  const lettereOpzioni = ['A', 'B', 'C', 'D'];
+  const rispostaData = risposteUtente[indiceCorrente];
+  const opzioni = [
+    { lettera: 'A', testo: domandaAttuale.opzione_a },
+    { lettera: 'B', testo: domandaAttuale.opzione_b },
+    { lettera: 'C', testo: domandaAttuale.opzione_c },
+    { lettera: 'D', testo: domandaAttuale.opzione_d },
+  ].filter((o) => o.testo);
+
+  const progressoPercent = Math.round(((indiceCorrente + 1) / domande.length) * 100);
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-slate-800 p-4 lg:p-8 flex flex-col items-center font-sans">
-      <div className="w-full max-w-xl flex flex-col flex-1">
-        {/* Barra superiore */}
-        <div className="flex justify-between items-center mb-6 bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1">
-            ← Esci
+    <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-4 lg:p-8 font-sans flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col gap-5">
+        {/* BARRA SUPERIORE: NAVIGAZIONE ED ESITO */}
+        <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl shadow-sm">
+          <Link
+            href="/"
+            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 transition-colors flex items-center gap-1.5"
+          >
+            <span>←</span> Esci dal Quiz
           </Link>
-          <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            {modalitaRipasso && (
-              <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black">
-                Ripasso Errori
-              </span>
-            )}
-            <span>{nomeMateria || 'Esercitazione'}</span>
-          </div>
-          <span className="text-xs font-extrabold bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100">
+          <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+            {materia?.nome}
+          </span>
+          <span className="text-xs font-bold text-[#94A3B8] bg-[#23272D] px-2.5 py-1 rounded-lg border border-[#434B57]">
             {indiceCorrente + 1} / {domande.length}
           </span>
         </div>
 
-        {/* Card Domanda */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-6 shadow-xs">
+        {/* BARRA DI PROGRESSO */}
+        <div className="w-full bg-[#1C2025] h-2 rounded-full overflow-hidden border border-[#434B57]/50">
+          <div
+            className="bg-amber-500 h-full transition-all duration-300 rounded-full"
+            style={{ width: `${progressoPercent}%` }}
+          />
+        </div>
+
+        {/* CARD DELLA DOMANDA */}
+        <div className="bg-[#2E343D] p-6 lg:p-8 rounded-3xl border border-[#434B57] shadow-xl">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">
-              Quesito {indiceCorrente + 1}
+            <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#23272D] text-amber-400 border border-amber-500/30">
+              Quesito #{indiceCorrente + 1}
             </span>
           </div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+
+          <p className="text-base lg:text-lg font-bold text-[#F8FAFC] leading-relaxed mb-8">
             {domandaAttuale.testo}
-          </h2>
-        </div>
+          </p>
 
-        {/* Opzioni di risposta */}
-        <div className="flex flex-col gap-3 mb-6">
-          {lettereOpzioni.map((lettera) => {
-            const testoOpzione = domandaAttuale[`opzione_${lettera.toLowerCase()}`];
-            if (!testoOpzione) return null;
+          {/* LISTA OPZIONI RISPOSTA */}
+          <div className="flex flex-col gap-3 mb-6">
+            {opzioni.map((opt) => {
+              const isSelezionata = rispostaData === opt.lettera;
+              const isCorretta = opt.lettera === domandaAttuale.risposta_esatta;
+              const giaRisposto = rispostaData !== undefined;
 
-            let stile = "bg-white border-slate-200/80 hover:border-blue-300 hover:bg-blue-50/30 text-slate-700";
-            let badgeStile = "bg-slate-100 text-slate-600";
+              let stileScatola = 'bg-[#23272D] border-[#434B57] hover:border-amber-500/60 text-[#F8FAFC]';
+              let stileBadge = 'bg-[#2E343D] text-[#94A3B8] border-[#434B57]';
 
-            if (rispostaSelezionata !== null) {
-              const isCorretta = lettera === domandaAttuale.risposta_esatta;
-              const isScelta = lettera === rispostaSelezionata;
-
-              if (isCorretta) {
-                stile = "bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs";
-                badgeStile = "bg-emerald-600 text-white";
-              } else if (isScelta && !isCorretta) {
-                stile = "bg-rose-50 border-rose-300 text-rose-900 shadow-xs";
-                badgeStile = "bg-rose-600 text-white";
-              } else {
-                stile = "bg-white border-slate-200 opacity-40 text-slate-400";
-                badgeStile = "bg-slate-100 text-slate-400";
+              if (giaRisposto) {
+                if (isCorretta) {
+                  stileScatola = 'bg-emerald-950/40 border-emerald-500 text-emerald-100';
+                  stileBadge = 'bg-emerald-500 text-[#1C2025] font-black border-emerald-400';
+                } else if (isSelezionata && !isCorretta) {
+                  stileScatola = 'bg-rose-950/40 border-rose-500 text-rose-100';
+                  stileBadge = 'bg-rose-500 text-white font-black border-rose-400';
+                } else {
+                  stileScatola = 'bg-[#23272D]/50 border-[#434B57]/40 text-[#64748B] opacity-60';
+                }
               }
-            }
 
-            return (
-              <button
-                key={lettera}
-                onClick={() => gestisciScelta(lettera)}
-                className={`w-full p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all shadow-xs ${stile} cursor-pointer`}
-              >
-                <span className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${badgeStile}`}>
-                  {lettera}
-                </span>
-                <span className="text-xs sm:text-sm font-medium leading-snug">{testoOpzione}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Spiegamelo & Prossima */}
-        {rispostaSelezionata !== null && (
-          <div className="flex flex-col gap-3 mt-auto">
-            {domandaAttuale.spiegazione && (
-              <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4">
+              return (
                 <button
-                  onClick={() => setMostraSpiegazione(!mostraSpiegazione)}
-                  className="w-full flex items-center justify-between text-xs font-bold text-amber-800 cursor-pointer"
+                  key={opt.lettera}
+                  onClick={() => selezionaRisposta(opt.lettera)}
+                  disabled={giaRisposto}
+                  className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 text-xs lg:text-sm font-medium cursor-pointer ${stileScatola}`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span>💡</span> {mostraSpiegazione ? 'Nascondi Spiegazione' : 'Spiegamelo'}
-                  </span>
-                  <span>{mostraSpiegazione ? '▲' : '▼'}</span>
-                </button>
+                  <div className="flex items-center gap-3.5 flex-1">
+                    <span
+                      className={`w-8 h-8 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${stileBadge}`}
+                    >
+                      {opt.lettera}
+                    </span>
+                    <span className="leading-snug">{opt.testo}</span>
+                  </div>
 
-                {mostraSpiegazione && (
-                  <p className="mt-2.5 text-xs text-amber-950 leading-relaxed pt-2.5 border-t border-amber-200/60 font-medium">
-                    {domandaAttuale.spiegazione}
-                  </p>
-                )}
-              </div>
-            )}
+                  {giaRisposto && isCorretta && (
+                    <span className="text-emerald-400 font-extrabold text-xs shrink-0">✓ Esatta</span>
+                  )}
+                  {giaRisposto && isSelezionata && !isCorretta && (
+                    <span className="text-rose-400 font-extrabold text-xs shrink-0">✕ Errata</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* BOX SPIEGAZIONE ("SPIEGAMELO") */}
+          {domandaAttuale.spiegazione && rispostaData !== undefined && (
+            <div className="mb-6 pt-2">
+              <button
+                onClick={() => setMostraSpiegazione(!mostraSpiegazione)}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>💡</span>
+                {mostraSpiegazione ? 'Nascondi Spiegazione Normativa' : 'Spiegamelo (Commento Didattico)'}
+                <span>{mostraSpiegazione ? '▴' : '▾'}</span>
+              </button>
+
+              {mostraSpiegazione && (
+                <div className="mt-3 p-4 bg-[#3D2E1E] rounded-2xl border border-amber-500/30 text-xs text-amber-200 leading-relaxed">
+                  <strong className="block text-amber-400 mb-1 font-bold">Riferimento Didattico / Giuridico:</strong>
+                  {domandaAttuale.spiegazione}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PULSANTI DI NAVIGAZIONE INFERIORI */}
+          <div className="flex items-center justify-between pt-4 border-t border-[#434B57] gap-3">
+            <button
+              onClick={domandaPrecedente}
+              disabled={indiceCorrente === 0}
+              className="px-4 py-3 bg-[#23272D] border border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC] disabled:opacity-30 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              ← Precedente
+            </button>
 
             <button
               onClick={prossimaDomanda}
               disabled={salvataggioInCorso}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-sm transition-all shadow-md shadow-blue-500/25 active:scale-[0.99] cursor-pointer"
+              className="flex-1 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
             >
               {salvataggioInCorso
                 ? 'Salvataggio...'
-                : indiceCorrente + 1 === domande.length
-                ? 'Concludi Quiz 🏆'
+                : indiceCorrente === domande.length - 1
+                ? 'Concludi Simulazione 🏁'
                 : 'Prossima Domanda →'}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </main>
   );

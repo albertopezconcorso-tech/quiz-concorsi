@@ -5,63 +5,40 @@ import { supabase } from '../supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function Dashboard() {
+export default function Home() {
   const router = useRouter();
-  const [utente, setUtente] = useState(null);
+  const [sessione, setSessione] = useState(null);
   const [materie, setMaterie] = useState([]);
-  const [statistiche, setStatistiche] = useState({
-    simulazioni: 0,
-    media: 0,
-    svolti: 0,
-    errori: 0,
-  });
-  const [attivita, setAttivita] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
 
   useEffect(() => {
-    async function initDashboard() {
-      // 1. Verifica utente autenticato
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
         router.push('/login');
-        return;
+      } else {
+        setSessione(session);
+        caricaMaterie();
       }
-      setUtente(user);
+    });
 
-      // 2. Carica materie
-      const { data: materieData } = await supabase
-        .from('materie')
-        .select('*')
-        .order('nome', { ascending: true });
-      setMaterie(materieData || []);
-
-      // 3. Carica progressi dell'utente loggato
-      const { data: progressiData } = await supabase
-        .from('progressi')
-        .select('*, materie(nome)')
-        .order('created_at', { ascending: false });
-
-      if (progressiData && progressiData.length > 0) {
-        const totaliSvolti = progressiData.reduce((acc, curr) => acc + (curr.totale_domande || 0), 0);
-        const totaliErrori = progressiData.reduce((acc, curr) => acc + (curr.errori || 0), 0);
-        const corrette = progressiData.reduce((acc, curr) => acc + (curr.punteggio || 0), 0);
-        const percMedia = totaliSvolti > 0 ? Math.round((corrette / totaliSvolti) * 100) : 0;
-
-        setStatistiche({
-          simulazioni: progressiData.length,
-          media: percMedia,
-          svolti: totaliSvolti,
-          errori: totaliErrori,
-        });
-
-        setAttivita(progressiData.slice(0, 5));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push('/login');
+      } else {
+        setSessione(session);
       }
+    });
 
-      setCaricamento(false);
-    }
-
-    initDashboard();
+    return () => subscription.unsubscribe();
   }, [router]);
+
+  async function caricaMaterie() {
+    const { data, error } = await supabase.from('materie').select('*').order('nome', { ascending: true });
+    if (!error && data) {
+      setMaterie(data);
+    }
+    setCaricamento(false);
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -70,269 +47,199 @@ export default function Dashboard() {
 
   if (caricamento) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-medium">
-        Caricamento dashboard...
+      <div className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-500 font-bold">
+        Caricamento portale...
       </div>
     );
   }
 
-  // Palette colori per le card delle materie
-  const paletteColori = [
-    { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: '🧠' },
-    { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', icon: '📖' },
-    { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: '💻' },
-    { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: '⚖️' },
-    { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', icon: '🏛️' },
-  ];
-
-  const nomeUtente = utente?.email?.split('@')[0] || 'Studente';
-  const inizialeUtente = nomeUtente.charAt(0).toUpperCase();
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex font-sans">
-      {/* 1. SIDEBAR SINISTRA */}
-      <aside className="w-64 bg-white border-r border-slate-200/80 p-6 flex flex-col justify-between hidden md:flex shrink-0">
+    <div className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col md:flex-row font-sans">
+      {/* SIDEBAR SINISTRA */}
+      <aside className="w-full md:w-64 bg-[#1C2025] border-b md:border-b-0 md:border-r border-[#434B57] p-6 flex flex-col justify-between shrink-0">
         <div>
-          {/* Brand Logo con finitura tricolore */}
           <div className="flex items-center gap-3 mb-8">
-            <span className="text-3xl">📘</span>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">
+              🏛️
+            </div>
             <div>
-              <span className="text-lg font-black text-[#1E3A8A] leading-tight block">QUIZ</span>
-              <span className="text-lg font-black text-blue-600 leading-tight block -mt-1.5">CONCORSI</span>
-              <div className="flex w-14 h-1 rounded-full overflow-hidden mt-1">
-                <div className="w-1/3 bg-emerald-600"></div>
-                <div className="w-1/3 bg-slate-200"></div>
-                <div className="w-1/3 bg-rose-600"></div>
-              </div>
+              <h1 className="font-extrabold text-sm tracking-wider uppercase text-[#F8FAFC]">Quiz Concorsi</h1>
+              <p className="text-[11px] text-amber-400 font-semibold">Accademia Ufficiale</p>
             </div>
           </div>
 
-          {/* Voci di navigazione */}
-          <nav className="flex flex-col gap-1.5 text-sm font-medium">
-            <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold shadow-xs">
+          <nav className="flex flex-col gap-1.5">
+            <Link
+              href="/"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#3D2E1E] text-amber-400 border border-amber-500/40 text-sm font-semibold transition-all"
+            >
               <span>🏠</span> Home
             </Link>
-            <a href="#materie" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
+            <a
+              href="#materie-sezione"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all"
+            >
               <span>📚</span> Le mie materie
             </a>
-            <button onClick={() => materie.length > 0 && router.push(`/quiz/${materie[0].id}`)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all text-left">
+            <Link
+              href={materie.length > 0 ? `/quiz/${materie[0].id}` : '#'}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all"
+            >
               <span>▶️</span> Simulazioni
-            </button>
-            <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
+            </Link>
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all mt-4 border-t border-[#434B57] pt-4"
+            >
               <span>⚙️</span> Pannello Admin
             </Link>
           </nav>
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-rose-600 hover:bg-rose-50 font-medium text-sm transition-all"
-        >
-          <span>🚪</span> Esci
-        </button>
+        <div className="pt-6 border-t border-[#434B57]">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer"
+          >
+            Esci dall&apos;account
+          </button>
+        </div>
       </aside>
 
-      {/* 2. CONTENUTO CENTRALE */}
-      <main className="flex-1 p-6 lg:p-8 overflow-y-auto max-w-5xl">
-        {/* Intestazione di benvenuto */}
-        <header className="flex justify-between items-center mb-6">
+      {/* CONTENUTO PRINCIPALE */}
+      <main className="flex-1 p-6 lg:p-10 max-w-6xl overflow-y-auto">
+        {/* HEADER BENVENUTO */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-2">
-              Ciao, {nomeUtente.charAt(0).toUpperCase() + nomeUtente.slice(1)}! 👋
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">Sei pronto per una nuova sessione di studio?</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Profilo utente */}
-            <div className="flex items-center gap-2.5 bg-white border border-slate-200/80 rounded-full py-1.5 px-3 shadow-xs">
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-inner">
-                {inizialeUtente}
-              </div>
-              <span className="text-xs font-semibold text-slate-700 hidden sm:inline">{utente?.email}</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Banner Obiettivo (Con badge istituzionale) */}
-        <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-blue-700 to-indigo-800 text-white p-7 lg:p-8 mb-8 shadow-lg shadow-blue-700/15">
-          <div className="max-w-md relative z-10">
-            {/* Badge tricolore discreto */}
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold mb-3 border border-white/20">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400"></span>
-              <span>Concorsi Pubblici Italia</span>
-            </div>
-            <h2 className="text-xl lg:text-2xl font-black leading-snug mb-2">
-              Il tuo obiettivo, la tua preparazione.
+            <h2 className="text-2xl font-black text-[#F8FAFC]">
+              Ciao, {sessione?.user?.email?.split('@')[0]}! 👋
             </h2>
-            <p className="text-blue-100 text-xs lg:text-sm leading-relaxed mb-6">
-              Studia, metti alla prova le tue conoscenze e raggiungi i tuoi obiettivi. Ogni quiz ti avvicina al tuo traguardo.
-            </p>
-            {materie.length > 0 && (
-              <Link
-                href={`/quiz/${materie[0].id}`}
-                className="inline-flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs lg:text-sm px-5 py-3 rounded-xl shadow-md transition-all active:scale-[0.98]"
-              >
-                <span>▶</span> Inizia un quiz
-              </Link>
-            )}
+            <p className="text-xs text-[#94A3B8] mt-1">Sei pronto per una nuova sessione di studio?</p>
           </div>
-          {/* Elemento grafico decorativo */}
-          <div className="absolute right-4 -bottom-6 text-8xl lg:text-9xl opacity-20 select-none pointer-events-none">
-            📚
+
+          <div className="flex items-center gap-2.5 bg-[#2E343D] border border-[#434B57] px-3.5 py-2 rounded-2xl w-fit">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-[#1C2025] font-black flex items-center justify-center text-xs">
+              {sessione?.user?.email?.[0]?.toUpperCase()}
+            </div>
+            <span className="text-xs font-semibold text-[#F8FAFC]">{sessione?.user?.email}</span>
           </div>
         </div>
 
-        {/* Sezione Le Materie */}
-        <section id="materie" className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>📖</span> Le materie
-            </h3>
-            <span className="text-xs text-slate-500">Scegli la materia su cui vuoi esercitarti</span>
+        {/* GRIGLIA DASHBOARD: BANNER + STATISTICHE */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          {/* BANNER CENTRALE */}
+          <div className="lg:col-span-2 bg-[#3B332B] border border-[#855325] rounded-3xl p-6 lg:p-8 flex flex-col justify-between relative overflow-hidden shadow-md">
+            <div className="relative z-10">
+              <span className="inline-block px-3 py-1 bg-[#261E17] border border-amber-500/40 text-amber-400 font-bold text-[11px] rounded-full mb-4">
+                🎯 Concorsi Pubblici Italia
+              </span>
+              <h3 className="text-xl lg:text-2xl font-black text-[#FFFBEB] mb-2 leading-snug">
+                Il tuo obiettivo, la tua preparazione.
+              </h3>
+              <p className="text-xs text-[#D6D3D1] max-w-md mb-6 leading-relaxed">
+                Studia, metti alla prova le tue conoscenze e raggiungi i tuoi obiettivi. Ogni quiz ti avvicina al traguardo.
+              </p>
+            </div>
+
+            <div className="relative z-10">
+              {materie.length > 0 && (
+                <Link
+                  href={`/quiz/${materie[0].id}`}
+                  className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-extrabold px-6 py-3 rounded-2xl text-xs tracking-wide transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
+                >
+                  ▶ Inizia un quiz
+                </Link>
+              )}
+            </div>
           </div>
 
-          {materie.length === 0 ? (
-            <p className="text-sm text-slate-400">Nessuna materia presente. Aggiungine una dal pannello Admin!</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {materie.map((materia, index) => {
-                const tema = paletteColori[index % paletteColori.length];
-                return (
-                  <Link
-                    key={materia.id}
-                    href={`/quiz/${materia.id}`}
-                    className="bg-white border border-slate-200/80 hover:border-blue-400 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className={`w-11 h-11 rounded-xl ${tema.bg} ${tema.text} flex items-center justify-center text-xl mb-3`}>
-                        {tema.icon}
-                      </div>
-                      <h4 className="font-bold text-slate-800 text-base mb-1 group-hover:text-blue-600 transition-colors">
-                        {materia.nome}
-                      </h4>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">
-                        {materia.descrizione || 'Esercitati con i quiz ufficiali dedicati a questa materia.'}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-blue-600 transition-colors pt-3 border-t border-slate-100">
-                      <span>Inizia sessione</span>
-                      <span>→</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Ultime Attività */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <span>🕒</span> Ultime attività
-          </h3>
-          {attivita.length === 0 ? (
-            <p className="text-xs text-slate-400">Non hai ancora completato nessun quiz. Inizia subito per registrare i tuoi progressi!</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="text-slate-400 border-b border-slate-100 pb-2">
-                    <th className="pb-2">Data</th>
-                    <th className="pb-2">Materia</th>
-                    <th className="pb-2">Punteggio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {attivita.map((att) => (
-                    <tr key={att.id} className="text-slate-700">
-                      <td className="py-2.5 text-slate-500">
-                        {new Date(att.created_at).toLocaleDateString('it-IT')}
-                      </td>
-                      <td className="py-2.5 font-medium">{att.materie?.nome || 'Materia'}</td>
-                      <td className="py-2.5 font-bold text-emerald-600">
-                        {att.punteggio}/{att.totale_domande} ({Math.round((att.punteggio / att.totale_domande) * 100)}%)
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </main>
-
-      {/* 3. COLONNA DESTRA (STATISTICHE & PROGRESSI) */}
-      <aside className="w-80 bg-white border-l border-slate-200/80 p-6 hidden xl:flex flex-col gap-6 shrink-0">
-        {/* Le tue statistiche */}
-        <div>
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <span>📊</span> Le tue statistiche
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-2xl">
-              <div className="text-emerald-600 text-lg mb-1">🏆</div>
-              <div className="text-xl font-black text-slate-900">{statistiche.simulazioni}</div>
-              <div className="text-[11px] text-slate-500 font-medium leading-tight">Simulazioni</div>
-            </div>
-            <div className="p-3.5 bg-blue-50/60 border border-blue-100 rounded-2xl">
-              <div className="text-blue-600 text-lg mb-1">🎯</div>
-              <div className="text-xl font-black text-slate-900">{statistiche.media}%</div>
-              <div className="text-[11px] text-slate-500 font-medium leading-tight">Punteggio medio</div>
-            </div>
-            <div className="p-3.5 bg-purple-50/60 border border-purple-100 rounded-2xl">
-              <div className="text-purple-600 text-lg mb-1">📝</div>
-              <div className="text-xl font-black text-slate-900">{statistiche.svolti}</div>
-              <div className="text-[11px] text-slate-500 font-medium leading-tight">Quiz svolti</div>
-            </div>
-            <div className="p-3.5 bg-rose-50/60 border border-rose-100 rounded-2xl">
-              <div className="text-rose-600 text-lg mb-1">❌</div>
-              <div className="text-xl font-black text-slate-900">{statistiche.errori}</div>
-              <div className="text-[11px] text-slate-500 font-medium leading-tight">Errori totali</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Azioni Rapide */}
-        <div>
-          <h3 className="text-sm font-bold text-slate-900 mb-3">Azioni rapide</h3>
-          <div className="flex flex-col gap-2.5">
-            {materie.length > 0 && (
-              <Link
-                href={`/quiz/${materie[0].id}`}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition-all text-xs font-semibold text-slate-700"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">🎯</span>
-                  <span>Esercitazione rapida</span>
+          {/* COLONNA STATISTICHE & AZIONI RAPIDE */}
+          <div className="flex flex-col gap-4">
+            <div className="bg-[#2E343D] border border-[#434B57] p-5 rounded-3xl">
+              <h4 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-4">📊 Le tue statistiche</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
+                  <span className="text-lg">🎖️</span>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
+                  <div className="text-[11px] text-[#94A3B8]">Simulazioni</div>
                 </div>
-                <span>→</span>
-              </Link>
-            )}
-            <Link
-              href="/admin"
-              className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition-all text-xs font-semibold text-slate-700"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg">⚙️</span>
-                <span>Aggiungi nuove domande</span>
+                <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
+                  <span className="text-lg">🎯</span>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0%</div>
+                  <div className="text-[11px] text-[#94A3B8]">Punteggio medio</div>
+                </div>
+                <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
+                  <span className="text-lg">📝</span>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
+                  <div className="text-[11px] text-[#94A3B8]">Quiz svolti</div>
+                </div>
+                <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
+                  <span className="text-lg">❌</span>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
+                  <div className="text-[11px] text-[#94A3B8]">Errori totali</div>
+                </div>
               </div>
-              <span>→</span>
-            </Link>
+            </div>
+
+            <div className="bg-[#2E343D] border border-[#434B57] p-4 rounded-3xl flex flex-col gap-2">
+              <span className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Azioni rapide</span>
+              {materie.length > 0 && (
+                <Link
+                  href={`/quiz/${materie[0].id}`}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
+                >
+                  <span className="flex items-center gap-2">⚡ Esercitazione rapida</span>
+                  <span className="text-amber-400">→</span>
+                </Link>
+              )}
+              <Link
+                href="/admin"
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
+              >
+                <span className="flex items-center gap-2">📁 Aggiungi nuove domande</span>
+                <span className="text-amber-400">→</span>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Piede colonna con Tricolore */}
-        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Quiz Concorsi © 2026</span>
-          <div className="flex h-1.5 w-6 rounded-full overflow-hidden">
-            <div className="w-1/3 bg-emerald-600"></div>
-            <div className="w-1/3 bg-slate-200"></div>
-            <div className="w-1/3 bg-rose-600"></div>
+        {/* SEZIONE MATERIE */}
+        <div id="materie-sezione" className="pt-2">
+          <div className="flex justify-between items-end mb-5">
+            <div>
+              <h3 className="text-lg font-black text-[#F8FAFC]">📖 Le materie</h3>
+              <p className="text-xs text-[#94A3B8]">Scegli la materia su cui vuoi esercitarti</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {materie.map((materia) => (
+              <div
+                key={materia.id}
+                className="bg-[#2E343D] border border-[#434B57] p-5 rounded-3xl flex flex-col justify-between hover:border-amber-500/60 transition-all group"
+              >
+                <div>
+                  <div className="w-9 h-9 rounded-2xl bg-[#23272D] border border-[#434B57] flex items-center justify-center text-sm mb-3">
+                    📚
+                  </div>
+                  <h4 className="text-sm font-bold text-[#F8FAFC] group-hover:text-amber-400 transition-colors">
+                    {materia.nome}
+                  </h4>
+                  <p className="text-[11px] text-[#94A3B8] mt-1 leading-relaxed line-clamp-2">
+                    {materia.descrizione || `Esercitati con i quiz ufficiali dedicati a ${materia.nome}.`}
+                  </p>
+                </div>
+
+                <div className="pt-5 mt-4 border-t border-[#434B57]/60 flex items-center justify-between text-xs font-bold text-amber-400">
+                  <Link href={`/quiz/${materia.id}`} className="hover:underline flex items-center gap-1">
+                    Inizia sessione <span>→</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </aside>
+      </main>
     </div>
   );
 }
