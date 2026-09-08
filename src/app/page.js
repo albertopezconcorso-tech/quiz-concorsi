@@ -9,6 +9,9 @@ export default function Home() {
   const router = useRouter();
   const [sessione, setSessione] = useState(null);
   const [materie, setMaterie] = useState([]);
+  const [totaleErrori, setTotaleErrori] = useState(0);
+  const [totaleQuiz, setTotaleQuiz] = useState(0);
+  const [mediaPunti, setMediaPunti] = useState(0);
   const [caricamento, setCaricamento] = useState(true);
 
   useEffect(() => {
@@ -17,7 +20,7 @@ export default function Home() {
         router.push('/login');
       } else {
         setSessione(session);
-        caricaMaterie();
+        caricaDati(session.user.id);
       }
     });
 
@@ -32,11 +35,29 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  async function caricaMaterie() {
-    const { data, error } = await supabase.from('materie').select('*').order('nome', { ascending: true });
-    if (!error && data) {
-      setMaterie(data);
+  async function caricaDati(userId) {
+    const { data: matData } = await supabase.from('materie').select('*').order('nome', { ascending: true });
+    if (matData) setMaterie(matData);
+
+    const { count: errCount } = await supabase
+      .from('errori_utente')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    setTotaleErrori(errCount || 0);
+
+    const { data: risData } = await supabase
+      .from('risultati_quiz')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (risData && risData.length > 0) {
+      setTotaleQuiz(risData.length);
+      const media = Math.round(
+        risData.reduce((acc, curr) => acc + (curr.punteggio_percentuale || 0), 0) / risData.length
+      );
+      setMediaPunti(media);
     }
+
     setCaricamento(false);
   }
 
@@ -87,6 +108,12 @@ export default function Home() {
               <span>⚙️</span> Simulazione su Misura
             </Link>
             <Link
+              href="/ripasso"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all"
+            >
+              <span>🔄</span> Ripassa Errori ({totaleErrori})
+            </Link>
+            <Link
               href="/admin"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#2E343D] text-sm font-semibold transition-all mt-4 border-t border-[#434B57] pt-4"
             >
@@ -124,6 +151,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          {/* BANNER CENTRALE */}
           <div className="lg:col-span-2 bg-[#3B332B] border border-[#855325] rounded-3xl p-6 lg:p-8 flex flex-col justify-between relative overflow-hidden shadow-md">
             <div className="relative z-10">
               <span className="inline-block px-3 py-1 bg-[#261E17] border border-amber-500/40 text-amber-400 font-bold text-[11px] rounded-full mb-4">
@@ -150,29 +178,30 @@ export default function Home() {
             </div>
           </div>
 
+          {/* STATISTICHE E AZIONI RAPIDE */}
           <div className="flex flex-col gap-4">
             <div className="bg-[#2E343D] border border-[#434B57] p-5 rounded-3xl">
               <h4 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-4">📊 Le tue statistiche</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
                   <span className="text-lg">🎖️</span>
-                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">{totaleQuiz}</div>
                   <div className="text-[11px] text-[#94A3B8]">Simulazioni</div>
                 </div>
                 <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
                   <span className="text-lg">🎯</span>
-                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0%</div>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">{mediaPunti}%</div>
                   <div className="text-[11px] text-[#94A3B8]">Punteggio medio</div>
                 </div>
                 <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
                   <span className="text-lg">📝</span>
-                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
-                  <div className="text-[11px] text-[#94A3B8]">Quiz svolti</div>
+                  <div className="text-xl font-black text-[#F8FAFC] mt-1">{totaleQuiz}</div>
+                  <div className="text-[11px] text-[#94A3B8]">Test svolti</div>
                 </div>
-                <div className="bg-[#23272D] border border-[#434B57] p-3 rounded-2xl">
+                <div className="bg-[#23272D] border border-rose-500/30 p-3 rounded-2xl">
                   <span className="text-lg">❌</span>
-                  <div className="text-xl font-black text-[#F8FAFC] mt-1">0</div>
-                  <div className="text-[11px] text-[#94A3B8]">Errori totali</div>
+                  <div className="text-xl font-black text-rose-400 mt-1">{totaleErrori}</div>
+                  <div className="text-[11px] text-[#94A3B8]">Errori attivi</div>
                 </div>
               </div>
             </div>
@@ -180,23 +209,24 @@ export default function Home() {
             <div className="bg-[#2E343D] border border-[#434B57] p-4 rounded-3xl flex flex-col gap-2">
               <span className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">Azioni rapide</span>
               <Link
+                href="/ripasso"
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
+              >
+                <span className="flex items-center gap-2">🔄 Ripassa solo gli errori ({totaleErrori})</span>
+                <span className="text-amber-400">→</span>
+              </Link>
+              <Link
                 href="/simulazione"
                 className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
               >
                 <span className="flex items-center gap-2">⚙️ Test Multimateria Personalizzato</span>
                 <span className="text-amber-400">→</span>
               </Link>
-              <Link
-                href="/admin"
-                className="flex items-center justify-between p-3 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 text-xs font-bold text-[#F8FAFC] transition-all"
-              >
-                <span className="flex items-center gap-2">📁 Aggiungi nuove domande</span>
-                <span className="text-amber-400">→</span>
-              </Link>
             </div>
           </div>
         </div>
 
+        {/* SEZIONE MATERIE */}
         <div id="materie-sezione" className="pt-2">
           <div className="flex justify-between items-end mb-5">
             <div>
