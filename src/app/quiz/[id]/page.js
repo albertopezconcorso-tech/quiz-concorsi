@@ -5,7 +5,6 @@ import { supabase } from '../../../supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Algoritmo di mescolamento casuale
 function mescolaArray(array) {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -28,6 +27,7 @@ export default function QuizPage({ params }) {
   const [caricamento, setCaricamento] = useState(true);
   const [quizFinito, setQuizFinito] = useState(false);
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     async function initQuiz() {
@@ -36,6 +36,7 @@ export default function QuizPage({ params }) {
         router.push('/login');
         return;
       }
+      setUserId(session.user.id);
 
       const { data: matData } = await supabase
         .from('materie')
@@ -50,9 +51,7 @@ export default function QuizPage({ params }) {
         .eq('materia_id', materiaId);
 
       if (!error && qData) {
-        // Mescola in ordine casuale e seleziona massimo 30 quesiti
-        const casuali = mescolaArray(qData).slice(0, 30);
-        setDomande(casuali);
+        setDomande(mescolaArray(qData).slice(0, 30));
       }
       setCaricamento(false);
     }
@@ -64,12 +63,30 @@ export default function QuizPage({ params }) {
 
   const domandaAttuale = domande[indiceCorrente];
 
-  const selezionaRisposta = (lettera) => {
+  // GESTIONE RISPOSTA E MEMORIZZAZIONE ERRORI
+  const selezionaRisposta = async (lettera) => {
     if (risposteUtente[indiceCorrente] !== undefined) return;
+
     setRisposteUtente((prev) => ({
       ...prev,
       [indiceCorrente]: lettera,
     }));
+
+    if (!userId || !domandaAttuale) return;
+
+    if (lettera !== domandaAttuale.risposta_esatta) {
+      // RISPOSTA SBAGLIATA -> Salva subito l'errore nel database!
+      await supabase.from('errori_utente').upsert(
+        { user_id: userId, domanda_id: domandaAttuale.id },
+        { onConflict: 'user_id,domanda_id' }
+      );
+    } else {
+      // RISPOSTA CORRETTA -> Rimuove l'errore se era stato fatto in precedenza
+      await supabase
+        .from('errori_utente')
+        .delete()
+        .match({ user_id: userId, domanda_id: domandaAttuale.id });
+    }
   };
 
   const prossimaDomanda = async () => {
@@ -101,11 +118,10 @@ export default function QuizPage({ params }) {
 
     const punteggio = Math.round((corrette / domande.length) * 100);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    if (userId) {
       await supabase.from('risultati_quiz').insert([
         {
-          user_id: session.user.id,
+          user_id: userId,
           materia_id: materiaId,
           totale_domande: domande.length,
           risposte_esatte: corrette,
@@ -178,7 +194,7 @@ export default function QuizPage({ params }) {
             </div>
             <div className="p-3 bg-[#23272D] rounded-xl border border-rose-500/30">
               <div className="text-rose-400 text-lg font-black">{errate}</div>
-              <div className="text-[10px] text-[#94A3B8]">Errate</div>
+              <div className="text-[10px] text-[#94A3B8]">Errate (Salvate)</div>
             </div>
             <div className="p-3 bg-[#23272D] rounded-xl border border-[#434B57]">
               <div className="text-[#94A3B8] text-lg font-black">{nonRisposte}</div>
