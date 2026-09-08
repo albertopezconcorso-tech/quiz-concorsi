@@ -14,6 +14,7 @@ export default function RipassoErroriPage() {
   const [caricamento, setCaricamento] = useState(true);
   const [quizFinito, setQuizFinito] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [rimozioneInCorso, setRimozioneInCorso] = useState(false);
 
   useEffect(() => {
     async function caricaErrori() {
@@ -24,7 +25,6 @@ export default function RipassoErroriPage() {
       }
       setUserId(session.user.id);
 
-      // Recupera gli ID delle domande errate per questo studente
       const { data: errData, error: errError } = await supabase
         .from('errori_utente')
         .select('domanda_id')
@@ -33,7 +33,6 @@ export default function RipassoErroriPage() {
       if (!errError && errData && errData.length > 0) {
         const ids = errData.map((e) => e.domanda_id);
 
-        // Recupera i dettagli delle domande dal database
         const { data: qData } = await supabase
           .from('domande')
           .select('*, materie(nome)')
@@ -50,6 +49,31 @@ export default function RipassoErroriPage() {
 
   const domandaAttuale = domande[indiceCorrente];
 
+  // Eliminazione manuale tramite la "X"
+  const rimuoviErroreManuale = async () => {
+    if (!userId || !domandaAttuale || rimozioneInCorso) return;
+
+    setRimozioneInCorso(true);
+
+    await supabase
+      .from('errori_utente')
+      .delete()
+      .match({ user_id: userId, domanda_id: domandaAttuale.id });
+
+    // Rimuove la domanda dalla memoria locale
+    const nuoveDomande = domande.filter((_, idx) => idx !== indiceCorrente);
+    setDomande(nuoveDomande);
+    setMostraSpiegazione(false);
+
+    if (nuoveDomande.length === 0) {
+      setQuizFinito(true);
+    } else if (indiceCorrente >= nuoveDomande.length) {
+      setIndiceCorrente(nuoveDomande.length - 1);
+    }
+
+    setRimozioneInCorso(false);
+  };
+
   const selezionaRisposta = async (lettera) => {
     if (risposteUtente[indiceCorrente] !== undefined) return;
 
@@ -60,7 +84,7 @@ export default function RipassoErroriPage() {
 
     if (!userId || !domandaAttuale) return;
 
-    // Se ora la indovina, viene rimossa dal registro degli errori!
+    // Se indovina, viene rimossa in automatico
     if (lettera === domandaAttuale.risposta_esatta) {
       await supabase
         .from('errori_utente')
@@ -93,15 +117,14 @@ export default function RipassoErroriPage() {
     );
   }
 
-  // Nessun errore memorizzato
-  if (domande.length === 0) {
+  if (domande.length === 0 && !quizFinito) {
     return (
       <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-6 font-sans">
         <div className="bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] max-w-md text-center shadow-xl">
           <div className="text-4xl mb-3">🎉</div>
           <h2 className="text-lg font-bold mb-2 text-[#F8FAFC]">Nessun errore da ripassare!</h2>
           <p className="text-xs text-[#94A3B8] mb-6 leading-relaxed">
-            Non hai errori memorizzati o hai già corretto tutti i quesiti che avevi sbagliato in precedenza. Ottimo lavoro!
+            Hai una preparazione perfetta: non ci sono errori memorizzati nel tuo profilo.
           </p>
           <Link
             href="/"
@@ -114,43 +137,24 @@ export default function RipassoErroriPage() {
     );
   }
 
-  // Schermata finale ripasso
   if (quizFinito) {
-    let recuperate = 0;
-    let ancoraErrate = 0;
-    domande.forEach((d, idx) => {
-      if (risposteUtente[idx] === d.risposta_esatta) recuperate++;
-      else if (risposteUtente[idx] !== undefined) ancoraErrate++;
-    });
-
     return (
       <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
         <div className="w-full max-w-md bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl text-center">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-3xl mx-auto mb-4">
             🎯
           </div>
-          <h1 className="text-xl font-black text-[#F8FAFC] mb-1">Sessione Ripasso Conclusa!</h1>
-          <p className="text-xs text-[#94A3B8] mb-6">Hai riesaminato le domande su cui avevi avuto difficoltà</p>
+          <h1 className="text-xl font-black text-[#F8FAFC] mb-2">Sessione di Ripasso Conclusa!</h1>
+          <p className="text-xs text-[#94A3B8] mb-6">
+            Le domande corrette o rimosse con la ✕ sono state eliminate definitivamente dal tuo archivio errori.
+          </p>
 
-          <div className="grid grid-cols-2 gap-3 text-center mb-8">
-            <div className="p-4 bg-[#23272D] rounded-2xl border border-emerald-500/30">
-              <div className="text-emerald-400 text-2xl font-black">{recuperate}</div>
-              <div className="text-[11px] text-[#94A3B8] mt-1">Imparate e rimosse dagli errori!</div>
-            </div>
-            <div className="p-4 bg-[#23272D] rounded-2xl border border-rose-500/30">
-              <div className="text-rose-400 text-2xl font-black">{ancoraErrate}</div>
-              <div className="text-[11px] text-[#94A3B8] mt-1">Ancora da perfezionare</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <Link
-              href="/"
-              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 text-center"
-            >
-              Torna alla Dashboard
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 text-center block"
+          >
+            Torna alla Dashboard
+          </Link>
         </div>
       </main>
     );
@@ -192,10 +196,21 @@ export default function RipassoErroriPage() {
         </div>
 
         <div className="bg-[#2E343D] p-6 lg:p-8 rounded-3xl border border-[#434B57] shadow-xl">
-          <div className="flex items-center gap-2 mb-3">
+          {/* HEADER DELLA DOMANDA CON PULSANTE RAPIDO X */}
+          <div className="flex items-center justify-between gap-2 mb-4">
             <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#23272D] text-rose-400 border border-rose-500/30">
               Quesito da Recuperare #{indiceCorrente + 1}
             </span>
+
+            <button
+              onClick={rimuoviErroreManuale}
+              disabled={rimozioneInCorso}
+              title="Elimina definitivamente questo errore"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+            >
+              <span>✕</span>
+              <span>{rimozioneInCorso ? 'Rimozione...' : 'Non la sbaglio più (Elimina)'}</span>
+            </button>
           </div>
 
           <p className="text-base lg:text-lg font-bold text-[#F8FAFC] leading-relaxed mb-8">
