@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 export default function AdminPage() {
   const [autenticato, setAutenticato] = useState(false);
@@ -21,7 +22,7 @@ export default function AdminPage() {
   const [descMateria, setDescMateria] = useState('');
   const [messaggioMateria, setMessaggioMateria] = useState('');
 
-  // Domanda nuova
+  // Domanda singola
   const [materiaScelta, setMateriaScelta] = useState('');
   const [testoDomanda, setTestoDomanda] = useState('');
   const [opzioneA, setOpzioneA] = useState('');
@@ -31,6 +32,13 @@ export default function AdminPage() {
   const [rispostaEsatta, setRispostaEsatta] = useState('A');
   const [spiegazione, setSpiegazione] = useState('');
   const [messaggioDomanda, setMessaggioDomanda] = useState('');
+
+  // Import Massivo Excel
+  const [materiaImport, setMateriaImport] = useState('');
+  const [anteprimaDomande, setAnteprimaDomande] = useState([]);
+  const [nomeFileCaricato, setNomeFileCaricato] = useState('');
+  const [caricamentoMassivo, setCaricamentoMassivo] = useState(false);
+  const [messaggioImport, setMessaggioImport] = useState('');
 
   // Gestione elenco domande salvate
   const [materiaFiltro, setMateriaFiltro] = useState('');
@@ -55,6 +63,7 @@ export default function AdminPage() {
       setMaterie(data);
       if (data.length > 0) {
         setMateriaScelta((prev) => prev || data[0].id);
+        setMateriaImport((prev) => prev || data[0].id);
         const primoId = data[0].id;
         setMateriaFiltro((prev) => {
           const id = prev || primoId;
@@ -80,15 +89,9 @@ export default function AdminPage() {
     setCaricamentoDomande(false);
   }
 
-  const handleCambioFiltro = (materiaId) => {
-    setMateriaFiltro(materiaId);
-    caricaDomandePerMateria(materiaId);
-  };
-
   const handleLogin = (e) => {
     e.preventDefault();
     const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-
     if (inputPassword === adminPassword) {
       setAutenticato(true);
       setErrorePassword(false);
@@ -149,6 +152,22 @@ export default function AdminPage() {
     }
   };
 
+  const eliminaMateria = async (idMateria, nomeMateria) => {
+    const conferma = window.confirm(
+      `Sei sicuro di voler eliminare la materia "${nomeMateria}" e tutte le sue domande?`
+    );
+    if (!conferma) return;
+
+    await supabase.from('domande').delete().eq('materia_id', idMateria);
+    const { error } = await supabase.from('materie').delete().eq('id', idMateria);
+
+    if (error) {
+      alert('Errore eliminazione: ' + error.message);
+    } else {
+      caricaMaterie();
+    }
+  };
+
   const aggiungiDomanda = async (e) => {
     e.preventDefault();
     if (!testoDomanda.trim() || !opzioneA.trim() || !opzioneB.trim()) {
@@ -172,7 +191,7 @@ export default function AdminPage() {
     if (error) {
       setMessaggioDomanda('❌ Errore: ' + error.message);
     } else {
-      setMessaggioDomanda('✅ Domanda salvata nel database!');
+      setMessaggioDomanda('✅ Domanda salvata!');
       setTestoDomanda('');
       setOpzioneA('');
       setOpzioneB('');
@@ -189,16 +208,120 @@ export default function AdminPage() {
     const conferma = window.confirm('Sei sicuro di voler eliminare questa domanda definitivamente?');
     if (!conferma) return;
 
-    const { error } = await supabase
-      .from('domande')
-      .delete()
-      .eq('id', domandaId);
+    const { error } = await supabase.from('domande').delete().eq('id', domandaId);
 
     if (error) {
-      alert('Errore durante la cancellazione: ' + error.message);
+      alert('Errore eliminazione: ' + error.message);
     } else {
       setElencoDomande((prev) => prev.filter((d) => d.id !== domandaId));
     }
+  };
+
+  const gestisciFileExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setNomeFileCaricato(file.name);
+    setMessaggioImport('');
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const domandeFormattate = rows
+          .map((r) => {
+            const getVal = (chiavi) => {
+              for (const k of chiavi) {
+                const trovata = Object.keys(r).find(
+                  (col) => col.trim().toLowerCase() === k.toLowerCase()
+                );
+                if (trovata && r[trovata] !== undefined) return String(r[trovata]).trim();
+              }
+              return '';
+            };
+
+            const testo = getVal(['Testo Domanda', 'Domanda', 'Testo']);
+            const opzA = getVal(['Opzione A', 'Risposta A', 'A']);
+            const opzB = getVal(['Opzione B', 'Risposta B', 'B']);
+            const opzC = getVal(['Opzione C', 'Risposta C', 'C']);
+            const opzD = getVal(['Opzione D', 'Risposta D', 'D']);
+            const esatta = getVal(['Risposta Esatta', 'Esatta', 'Corretta']).toUpperCase();
+            const spieg = getVal(['Spiegazione Didattica', 'Spiegazione', 'Commento']);
+            const materiaNome = getVal(['Materia']);
+
+            return {
+              testo,
+              opzione_a: opzA,
+              opzione_b: opzB,
+              opzione_c: opzC || null,
+              opzione_d: opzD || null,
+              risposta_esatta: ['A', 'B', 'C', 'D'].includes(esatta) ? esatta : 'A',
+              spiegazione: spieg || null,
+              materia_nome: materiaNome,
+            };
+          })
+          .filter((d) => d.testo && d.opzione_a && d.opzione_b);
+
+        setAnteprimaDomande(domandeFormattate);
+        if (domandeFormattate.length === 0) {
+          setMessaggioImport('⚠️ Nessuna domanda valida trovata nel file.');
+        } else {
+          setMessaggioImport(`📊 Lette con successo ${domandeFormattate.length} domande pronte per l\'importazione!`);
+        }
+      } catch (err) {
+        setMessaggioImport('❌ Errore durante la lettura del file: ' + err.message);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const confermaImportazione = async () => {
+    if (anteprimaDomande.length === 0) return;
+    setCaricamentoMassivo(true);
+    setMessaggioImport('Salvataggio nel database in corso...');
+
+    try {
+      const payload = anteprimaDomande.map((d) => {
+        let idMateriaDaUsare = materiaImport;
+        if (d.materia_nome) {
+          const matchMateria = materie.find(
+            (m) => m.nome.trim().toLowerCase() === d.materia_nome.trim().toLowerCase()
+          );
+          if (matchMateria) idMateriaDaUsare = matchMateria.id;
+        }
+
+        return {
+          materia_id: idMateriaDaUsare,
+          testo: d.testo,
+          opzione_a: d.opzione_a,
+          opzione_b: d.opzione_b,
+          opzione_c: d.opzione_c,
+          opzione_d: d.opzione_d,
+          risposta_esatta: d.risposta_esatta,
+          spiegazione: d.spiegazione,
+        };
+      });
+
+      const chunkSize = 100;
+      for (let i = 0; i < payload.length; i += chunkSize) {
+        const blocco = payload.slice(i, i + chunkSize);
+        const { error } = await supabase.from('domande').insert(blocco);
+        if (error) throw error;
+      }
+
+      setMessaggioImport(`🎉 Importate con successo ${payload.length} domande!`);
+      setAnteprimaDomande([]);
+      setNomeFileCaricato('');
+      caricaDomandePerMateria(materiaFiltro);
+    } catch (err) {
+      setMessaggioImport('❌ Errore nel salvataggio: ' + err.message);
+    }
+    setCaricamentoMassivo(false);
   };
 
   if (!autenticato) {
@@ -210,7 +333,6 @@ export default function AdminPage() {
           </div>
           <h1 className="text-xl font-bold text-slate-800 mb-1">Accesso Amministratore</h1>
           <p className="text-slate-400 text-xs mb-6">Inserisci la password di sicurezza</p>
-
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <input
               type="password"
@@ -230,7 +352,6 @@ export default function AdminPage() {
               Sblocca Pannello
             </button>
           </form>
-
           <Link href="/login" className="inline-block mt-5 text-xs text-slate-400 hover:text-blue-600 transition-colors">
             ← Torna al Login Studenti
           </Link>
@@ -251,7 +372,7 @@ export default function AdminPage() {
                 Admin Attivo
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Gestisci studenti, materie e banca dati</p>
+            <p className="text-xs text-slate-400 mt-0.5">Gestisci studenti, materie e banca dati quesiti</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -281,18 +402,18 @@ export default function AdminPage() {
           <form onSubmit={creaStudente} className="flex flex-col sm:flex-row gap-3">
             <input
               type="email"
-              placeholder="Email corsista (es. mario@test.it)"
+              placeholder="Email corsista"
               value={emailStudente}
               onChange={(e) => setEmailStudente(e.target.value)}
-              className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+              className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
             <input
               type="text"
-              placeholder="Password iniziale (min 6 car.)"
+              placeholder="Password (min 6 car.)"
               value={passStudente}
               onChange={(e) => setPassStudente(e.target.value)}
-              className="w-full sm:w-56 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+              className="w-full sm:w-56 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
             <button
@@ -306,43 +427,142 @@ export default function AdminPage() {
           {messaggioStudente && <p className="text-xs font-semibold mt-3 text-slate-700">{messaggioStudente}</p>}
         </div>
 
-        {/* SEZIONE 2: AGGIUNGI MATERIA */}
+        {/* SEZIONE 2: IMPORTAZIONE MASSIVA EXCEL */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-emerald-200/80 mb-8 shadow-xs">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">📊</span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Importazione Massiva da Excel o CSV</h2>
+              <p className="text-xs text-slate-400">Carica centinaia di domande con un clic tramite il template</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Materia di destinazione predefinita:
+              </label>
+              <select
+                value={materiaImport}
+                onChange={(e) => setMateriaImport(e.target.value)}
+                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                {materie.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[10px] text-slate-400 block mt-1">
+                * Se nel file Excel hai compilato la colonna Materia, verrà assegnata automaticamente.
+              </span>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <label className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-emerald-600/20 active:scale-[0.99] cursor-pointer inline-flex items-center gap-2">
+                <span>📁</span> Scegli File Excel / CSV
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={gestisciFileExcel}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          {nomeFileCaricato && (
+            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between text-xs text-emerald-800 mb-3">
+              <span>File selezionato: <strong>{nomeFileCaricato}</strong></span>
+              <span className="font-bold">{anteprimaDomande.length} quesiti rilevati</span>
+            </div>
+          )}
+
+          {messaggioImport && (
+            <p className="text-xs font-semibold mb-3 text-slate-700">{messaggioImport}</p>
+          )}
+
+          {anteprimaDomande.length > 0 && (
+            <button
+              onClick={confermaImportazione}
+              disabled={caricamentoMassivo}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
+            >
+              {caricamentoMassivo
+                ? 'Inserimento in corso nel Database...'
+                : `Carica tutte le ${anteprimaDomande.length} domande nel Database 🚀`}
+            </button>
+          )}
+        </div>
+
+        {/* SEZIONE 3: GESTIONE ED ELIMINAZIONE MATERIE */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-8 shadow-xs">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">📚</span>
-            <h2 className="text-base font-bold text-slate-900">Aggiungi Nuova Materia</h2>
+            <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">📚</span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Materie d&apos;Esame Attive</h2>
+              <p className="text-xs text-slate-400">Aggiungi nuove materie o elimina quelle non necessarie</p>
+            </div>
           </div>
-          <form onSubmit={aggiungiMateria} className="flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Nome Materia (es. Diritto Amministrativo)"
-              value={nuovaMateria}
-              onChange={(e) => setNuovaMateria(e.target.value)}
-              className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Breve descrizione (facoltativa)"
-              value={descMateria}
-              onChange={(e) => setDescMateria(e.target.value)}
-              className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-            />
-            <button
-              type="submit"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-[0.99] cursor-pointer"
-            >
-              Salva Materia
-            </button>
-            {messaggioMateria && <p className="text-xs font-semibold mt-1 text-slate-700">{messaggioMateria}</p>}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
+            {materie.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/70"
+              >
+                <div>
+                  <span className="text-xs font-bold text-slate-800">{m.nome}</span>
+                  {m.descrizione && (
+                    <span className="block text-[10px] text-slate-400 truncate max-w-[180px]">
+                      {m.descrizione}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => eliminaMateria(m.id, m.nome)}
+                  title={`Elimina ${m.nome}`}
+                  className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all cursor-pointer text-xs"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={aggiungiMateria} className="flex flex-col gap-3 pt-3 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                placeholder="Nuova Materia (es. Diritto)"
+                value={nuovaMateria}
+                onChange={(e) => setNuovaMateria(e.target.value)}
+                className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Breve descrizione (facoltativa)"
+                value={descMateria}
+                onChange={(e) => setDescMateria(e.target.value)}
+                className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <button
+                type="submit"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-600/20 active:scale-[0.99] cursor-pointer shrink-0"
+              >
+                Aggiungi
+              </button>
+            </div>
+            {messaggioMateria && <p className="text-xs font-semibold text-slate-700">{messaggioMateria}</p>}
           </form>
         </div>
 
-        {/* SEZIONE 3: AGGIUNGI DOMANDA */}
+        {/* SEZIONE 4: AGGIUNGI SINGOLA DOMANDA */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 mb-8 shadow-xs">
           <div className="flex items-center gap-2.5 mb-4">
             <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">📝</span>
-            <h2 className="text-base font-bold text-slate-900">Aggiungi Domanda e Spiegazione</h2>
+            <h2 className="text-base font-bold text-slate-900">Aggiungi Singola Domanda</h2>
           </div>
           <form onSubmit={aggiungiDomanda} className="flex flex-col gap-3">
             <div>
@@ -350,7 +570,7 @@ export default function AdminPage() {
               <select
                 value={materiaScelta}
                 onChange={(e) => setMateriaScelta(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -360,17 +580,14 @@ export default function AdminPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Testo della domanda:</label>
-              <textarea
-                rows="3"
-                placeholder="Scrivi qui il quesito d'esame..."
-                value={testoDomanda}
-                onChange={(e) => setTestoDomanda(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-                required
-              />
-            </div>
+            <textarea
+              rows="3"
+              placeholder="Scrivi qui il quesito d'esame..."
+              value={testoDomanda}
+              onChange={(e) => setTestoDomanda(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
@@ -419,42 +636,42 @@ export default function AdminPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Spiegazione didattica (Tasto "Spiegamelo"):</label>
-              <textarea
-                rows="3"
-                placeholder="Spiega chiaramente perché la risposta è corretta..."
-                value={spiegazione}
-                onChange={(e) => setSpiegazione(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-              />
-            </div>
+            <textarea
+              rows="2"
+              placeholder="Spiegazione didattica (Tasto Spiegamelo)..."
+              value={spiegazione}
+              onChange={(e) => setSpiegazione(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
 
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] mt-2 cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] cursor-pointer"
             >
-              Salva Domanda nel Database
+              Salva Domanda
             </button>
-            {messaggioDomanda && <p className="text-xs font-semibold mt-1 text-slate-700">{messaggioDomanda}</p>}
+            {messaggioDomanda && <p className="text-xs font-semibold text-slate-700">{messaggioDomanda}</p>}
           </form>
         </div>
 
-        {/* SEZIONE 4: GESTIONE ED ELIMINAZIONE DOMANDE */}
+        {/* SEZIONE 5: BANCA DATI ED ELIMINAZIONE */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2.5">
               <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">🗂️</span>
               <div>
                 <h2 className="text-base font-bold text-slate-900">Banca Dati Domande</h2>
-                <p className="text-xs text-slate-400">Visualizza ed elimina le domande salvate</p>
+                <p className="text-xs text-slate-400">Visualizza ed elimina i quesiti nel database</p>
               </div>
             </div>
 
             <div className="w-full sm:w-64">
               <select
                 value={materiaFiltro}
-                onChange={(e) => handleCambioFiltro(e.target.value)}
+                onChange={(e) => {
+                  setMateriaFiltro(e.target.value);
+                  caricaDomandePerMateria(e.target.value);
+                }}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {materie.map((m) => (
