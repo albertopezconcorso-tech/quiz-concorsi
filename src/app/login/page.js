@@ -9,80 +9,93 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errore, setErrore] = useState('');
   const [caricamento, setCaricamento] = useState(false);
+  const [errore, setErrore] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setCaricamento(true);
     setErrore('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: password,
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
     if (error) {
-      setErrore('Credenziali non valide. Verifica email e password.');
+      setErrore('Credenziali non corrette o utente inesistente.');
       setCaricamento(false);
-    } else {
+    } else if (data?.user) {
       router.push('/');
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-sm bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl mx-auto mb-3">
+    <main className="min-h-screen bg-[#23272D] flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md bg-[#2E343D] border border-[#434B57] p-8 rounded-3xl shadow-2xl">
+        {/* LOGO */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl mb-3 shadow-inner">
             🏛️
           </div>
-          <h1 className="text-xl font-black text-[#F8FAFC] tracking-wide">QUIZ CONCORSI</h1>
-          <p className="text-[#94A3B8] text-xs mt-3">Accedi con le credenziali fornite dal docente</p>
+          <h1 className="text-xl font-black uppercase tracking-wider text-[#F8FAFC]">
+            Quiz Concorsi
+          </h1>
+          <p className="text-xs text-[#94A3B8] mt-1 text-center">
+            Accedi con le credenziali fornite dal docente
+          </p>
         </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
+        {errore && (
+          <div className="mb-4 p-3 bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs rounded-xl font-bold text-center">
+            {errore}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
-            <label className="text-xs font-bold text-[#94A3B8] block mb-1.5">Email Studente</label>
+            <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
+              Email Studente
+            </label>
             <input
               type="email"
-              placeholder="nome@esempio.it"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] placeholder-[#64748B] text-sm focus:outline-none focus:border-amber-500 transition-all"
-              required
+              placeholder="nome@esempio.it"
+              className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
             />
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#94A3B8] block mb-1.5">Password</label>
+            <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
+              Password
+            </label>
             <input
               type="password"
-              placeholder="••••••••"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] placeholder-[#64748B] text-sm focus:outline-none focus:border-amber-500 transition-all"
-              required
+              placeholder="••••••••"
+              className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
             />
           </div>
-
-          {errore && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl text-center">
-              {errore}
-            </div>
-          )}
 
           <button
             type="submit"
             disabled={caricamento}
-            className="mt-2 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50 mt-2"
           >
             {caricamento ? 'Accesso in corso...' : 'Accedi al Simulatore'}
           </button>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-[#434B57] text-center">
-          <Link href="/admin" className="text-xs font-semibold text-[#94A3B8] hover:text-amber-400 transition-colors">
+        {/* LINK ADMIN FUNZIONANTE */}
+        <div className="mt-8 pt-6 border-t border-[#434B57] text-center">
+          <Link
+            href="/admin"
+            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 transition-colors inline-block cursor-pointer py-1"
+          >
             Sei l&apos;amministratore? Accedi qui →
           </Link>
         </div>
