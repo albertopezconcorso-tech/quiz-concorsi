@@ -14,13 +14,24 @@ function mescolaArray(array) {
   return arr;
 }
 
+const OPZIONI_LOGICA = [
+  { id: 'tutte', titolo: 'Tutta la Logica (Mista)', desc: 'Esercitazione combinata su tutte le tipologie', icona: '🔀' },
+  { id: 'Logica figurale', titolo: 'Logica Figurale', desc: 'Serie visive, matrici, tessere e rotazioni grafiche', icona: '🖼️' },
+  { id: 'Logica numerica', titolo: 'Logica Numerica', desc: 'Serie di numeri, matrici aritmetiche e calcolo rapido', icona: '🔢' },
+  { id: 'Logica deduttiva e ragionamento', titolo: 'Logica Deduttiva e Ragionamento', desc: 'Sillogismi, relazioni di parentela, negazioni logiche', icona: '🧠' }
+];
+
 export default function QuizPage({ params }) {
   const router = useRouter();
   const unwrappedParams = use(params);
   const materiaId = unwrappedParams?.id;
 
+  const [tutteLeDomande, setTutteLeDomande] = useState([]);
   const [domande, setDomande] = useState([]);
   const [materia, setMateria] = useState(null);
+  const [selezionataSubtipo, setSelezionataSubtipo] = useState(null); // per logica
+  const [mostraFiltroLogica, setMostraFiltroLogica] = useState(false);
+
   const [indiceCorrente, setIndiceCorrente] = useState(0);
   const [risposteUtente, setRisposteUtente] = useState({});
   const [mostraSpiegazione, setMostraSpiegazione] = useState(false);
@@ -51,7 +62,13 @@ export default function QuizPage({ params }) {
         .eq('materia_id', materiaId);
 
       if (!error && qData) {
-        setDomande(mescolaArray(qData).slice(0, 30));
+        setTutteLeDomande(qData);
+        // Se è Logica, mostriamo prima la selezione della branca
+        if (matData?.nome?.toLowerCase() === 'logica') {
+          setMostraFiltroLogica(true);
+        } else {
+          setDomande(mescolaArray(qData).slice(0, 30));
+        }
       }
       setCaricamento(false);
     }
@@ -61,9 +78,21 @@ export default function QuizPage({ params }) {
     }
   }, [materiaId, router]);
 
+  const avviaQuizLogica = (subtipoId) => {
+    let filtrate = [...tutteLeDomande];
+    if (subtipoId !== 'tutte') {
+      filtrate = filtrate.filter((d) => d.sottotipologia === subtipoId);
+    }
+    setSelezionataSubtipo(subtipoId);
+    setDomande(mescolaArray(filtrate).slice(0, 30));
+    setMostraFiltroLogica(false);
+    setIndiceCorrente(0);
+    setRisposteUtente({});
+  };
+
   const domandaAttuale = domande[indiceCorrente];
 
-  // GESTIONE RISPOSTA E MEMORIZZAZIONE ERRORI
+  // Gestione risposta e memorizzazione su errori_utente
   const selezionaRisposta = async (lettera) => {
     if (risposteUtente[indiceCorrente] !== undefined) return;
 
@@ -75,13 +104,11 @@ export default function QuizPage({ params }) {
     if (!userId || !domandaAttuale) return;
 
     if (lettera !== domandaAttuale.risposta_esatta) {
-      // RISPOSTA SBAGLIATA -> Salva subito l'errore nel database!
       await supabase.from('errori_utente').upsert(
         { user_id: userId, domanda_id: domandaAttuale.id },
         { onConflict: 'user_id,domanda_id' }
       );
     } else {
-      // RISPOSTA CORRETTA -> Rimuove l'errore se era stato fatto in precedenza
       await supabase
         .from('errori_utente')
         .delete()
@@ -116,7 +143,7 @@ export default function QuizPage({ params }) {
       else if (r !== undefined) errate++;
     });
 
-    const punteggio = Math.round((corrette / domande.length) * 100);
+    const punteggio = Math.round((corrette / (domande.length || 1)) * 100);
 
     if (userId) {
       await supabase.from('risultati_quiz').insert([
@@ -138,7 +165,56 @@ export default function QuizPage({ params }) {
   if (caricamento) {
     return (
       <main className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-400 font-bold font-sans">
-        Generazione test casuale in corso...
+        Caricamento quesiti...
+      </main>
+    );
+  }
+
+  // SCHERMATA DI SCELTA SOTTOTIPOLOGIA LOGICA
+  if (mostraFiltroLogica) {
+    return (
+      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 font-sans flex flex-col items-center justify-center">
+        <div className="w-full max-w-xl bg-[#2E343D] border border-[#434B57] p-8 rounded-3xl shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1">
+              ← Esci
+            </Link>
+            <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
+              Allenamento per Tipologia
+            </span>
+          </div>
+
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl mx-auto mb-3">
+              🧩
+            </div>
+            <h1 className="text-xl font-black text-[#F8FAFC]">Modulo Logica</h1>
+            <p className="text-xs text-[#94A3B8] mt-1">Scegli la branca di quesiti su cui desideri metterti alla prova</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {OPZIONI_LOGICA.map((opz) => (
+              <button
+                key={opz.id}
+                onClick={() => avviaQuizLogica(opz.id)}
+                className="p-4 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/60 text-left transition-all flex items-center justify-between group cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="text-2xl">{opz.icona}</span>
+                  <div>
+                    <h3 className="text-xs font-black text-[#F8FAFC] group-hover:text-amber-400 transition-colors">
+                      {opz.titolo}
+                    </h3>
+                    <p className="text-[11px] text-[#94A3B8]">{opz.desc}</p>
+                  </div>
+                </div>
+                <span className="text-amber-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                  Avvia →
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </main>
     );
   }
@@ -150,14 +226,14 @@ export default function QuizPage({ params }) {
           <div className="text-3xl mb-3">📭</div>
           <h2 className="text-lg font-bold mb-2 text-[#F8FAFC]">Nessuna domanda presente</h2>
           <p className="text-xs text-[#94A3B8] mb-6">
-            Non sono ancora presenti quesiti per la materia <strong>{materia?.nome || 'selezionata'}</strong>.
+            Non sono ancora presenti quesiti per la tipologia o materia selezionata.
           </p>
-          <Link
-            href="/"
-            className="inline-block bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-6 py-3 rounded-xl text-xs transition-all"
+          <button
+            onClick={() => setMostraFiltroLogica(materia?.nome?.toLowerCase() === 'logica')}
+            className="inline-block bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-6 py-3 rounded-xl text-xs transition-all cursor-pointer"
           >
-            Torna alla Home
-          </Link>
+            Torna alla Selezione
+          </button>
         </div>
       </main>
     );
@@ -180,7 +256,9 @@ export default function QuizPage({ params }) {
             🏆
           </div>
           <h1 className="text-2xl font-black text-[#F8FAFC] mb-1">Simulazione Conclusa!</h1>
-          <p className="text-xs text-[#94A3B8] mb-6">Materia: <strong className="text-amber-400">{materia?.nome}</strong></p>
+          <p className="text-xs text-[#94A3B8] mb-6">
+            {materia?.nome} {selezionataSubtipo && selezionataSubtipo !== 'tutte' ? `• ${selezionataSubtipo}` : ''}
+          </p>
 
           <div className="p-5 bg-[#23272D] rounded-2xl border border-[#434B57] mb-6">
             <div className="text-4xl font-black text-amber-400 mb-1">{percentuale}%</div>
@@ -212,7 +290,7 @@ export default function QuizPage({ params }) {
               }}
               className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
             >
-              Ripeti con Domande Mescolate
+              Ripeti con Quesiti Mescolati
             </button>
             <Link
               href="/"
@@ -240,14 +318,20 @@ export default function QuizPage({ params }) {
     <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-4 lg:p-8 font-sans flex flex-col items-center">
       <div className="w-full max-w-2xl flex flex-col gap-5">
         <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl shadow-sm">
-          <Link
-            href="/"
-            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 transition-colors flex items-center gap-1.5"
+          <button
+            onClick={() => {
+              if (materia?.nome?.toLowerCase() === 'logica') {
+                setMostraFiltroLogica(true);
+              } else {
+                router.push('/');
+              }
+            }}
+            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span>←</span> Esci dal Quiz
-          </Link>
+            <span>←</span> {materia?.nome?.toLowerCase() === 'logica' ? 'Cambia Tipologia' : 'Esci dal Quiz'}
+          </button>
           <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-            {materia?.nome}
+            {materia?.nome} {domandaAttuale.sottotipologia ? `• ${domandaAttuale.sottotipologia}` : ''}
           </span>
           <span className="text-xs font-bold text-[#94A3B8] bg-[#23272D] px-2.5 py-1 rounded-lg border border-[#434B57]">
             {indiceCorrente + 1} / {domande.length}
@@ -264,7 +348,7 @@ export default function QuizPage({ params }) {
         <div className="bg-[#2E343D] p-6 lg:p-8 rounded-3xl border border-[#434B57] shadow-xl">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#23272D] text-amber-400 border border-amber-500/30">
-              Quesito #{indiceCorrente + 1} (Casuale)
+              Quesito #{indiceCorrente + 1} {domandaAttuale.sottotipologia ? `(${domandaAttuale.sottotipologia})` : '(Casuale)'}
             </span>
           </div>
 
@@ -327,13 +411,13 @@ export default function QuizPage({ params }) {
                 className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>💡</span>
-                {mostraSpiegazione ? 'Nascondi Spiegazione Normativa' : 'Spiegamelo (Commento Didattico)'}
+                {mostraSpiegazione ? 'Nascondi Spiegazione / Metodo' : 'Mostra Spiegazione / Risoluzione Rapida'}
                 <span>{mostraSpiegazione ? '▴' : '▾'}</span>
               </button>
 
               {mostraSpiegazione && (
                 <div className="mt-3 p-4 bg-[#3D2E1E] rounded-2xl border border-amber-500/30 text-xs text-amber-200 leading-relaxed">
-                  <strong className="block text-amber-400 mb-1 font-bold">Riferimento Didattico / Giuridico:</strong>
+                  <strong className="block text-amber-400 mb-1 font-bold">Risoluzione Didattica:</strong>
                   {domandaAttuale.spiegazione}
                 </div>
               )}

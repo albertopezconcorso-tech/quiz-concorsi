@@ -2,741 +2,383 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import * as XLSX from 'xlsx';
+
+const TIPI_LOGICA = [
+  'Logica figurale',
+  'Logica numerica',
+  'Logica deduttiva e ragionamento'
+];
 
 export default function AdminPage() {
-  const [autenticato, setAutenticato] = useState(false);
-  const [inputPassword, setInputPassword] = useState('');
-  const [errorePassword, setErrorePassword] = useState(false);
-
-  // Creazione Studente
-  const [emailStudente, setEmailStudente] = useState('');
-  const [passStudente, setPassStudente] = useState('');
-  const [messaggioStudente, setMessaggioStudente] = useState('');
-  const [caricamentoStudente, setCaricamentoStudente] = useState(false);
-
-  // Materie
+  const router = useRouter();
   const [materie, setMaterie] = useState([]);
-  const [nuovaMateria, setNuovaMateria] = useState('');
-  const [descMateria, setDescMateria] = useState('');
-  const [messaggioMateria, setMessaggioMateria] = useState('');
-
-  // Domanda singola
-  const [materiaScelta, setMateriaScelta] = useState('');
-  const [testoDomanda, setTestoDomanda] = useState('');
+  const [materiaSelezionata, setMateriaSelezionata] = useState('');
+  const [sottotipologia, setSottotipologia] = useState('');
+  
+  // Campi inserimento manuale
+  const [testo, setTesto] = useState('');
   const [opzioneA, setOpzioneA] = useState('');
   const [opzioneB, setOpzioneB] = useState('');
   const [opzioneC, setOpzioneC] = useState('');
   const [opzioneD, setOpzioneD] = useState('');
   const [rispostaEsatta, setRispostaEsatta] = useState('A');
   const [spiegazione, setSpiegazione] = useState('');
-  const [messaggioDomanda, setMessaggioDomanda] = useState('');
-
-  // Import Massivo Excel
-  const [materiaImport, setMateriaImport] = useState('');
-  const [anteprimaDomande, setAnteprimaDomande] = useState([]);
-  const [nomeFileCaricato, setNomeFileCaricato] = useState('');
-  const [caricamentoMassivo, setCaricamentoMassivo] = useState(false);
-  const [messaggioImport, setMessaggioImport] = useState('');
-
-  // Gestione elenco domande salvate
-  const [materiaFiltro, setMateriaFiltro] = useState('');
-  const [elencoDomande, setElencoDomande] = useState([]);
-  const [caricamentoDomande, setCaricamentoDomande] = useState(false);
+  
+  // Stato caricamento e messaggi
+  const [messaggio, setMessaggio] = useState({ testo: '', tipo: '' });
+  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+  const [caricamentoFile, setCaricamentoFile] = useState(false);
 
   useEffect(() => {
-    const salvato = sessionStorage.getItem('admin_logged');
-    if (salvato === 'true') {
-      setAutenticato(true);
-      caricaMaterie();
-    }
-  }, []);
-
-  async function caricaMaterie() {
-    const { data, error } = await supabase
-      .from('materie')
-      .select('*')
-      .order('nome', { ascending: true });
-
-    if (!error && data) {
-      setMaterie(data);
-      if (data.length > 0) {
-        setMateriaScelta((prev) => prev || data[0].id);
-        setMateriaImport((prev) => prev || data[0].id);
-        const primoId = data[0].id;
-        setMateriaFiltro((prev) => {
-          const id = prev || primoId;
-          caricaDomandePerMateria(id);
-          return id;
-        });
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      const { data } = await supabase.from('materie').select('*').order('nome', { ascending: true });
+      if (data && data.length > 0) {
+        setMaterie(data);
+        setMateriaSelezionata(data[0].id.toString());
       }
     }
-  }
+    checkAuth();
+  }, [router]);
 
-  async function caricaDomandePerMateria(materiaId) {
-    if (!materiaId) return;
-    setCaricamentoDomande(true);
-    const { data, error } = await supabase
-      .from('domande')
-      .select('*')
-      .eq('materia_id', materiaId)
-      .order('id', { ascending: true });
+  // Controlla se la materia corrente è "Logica"
+  const materiaOggetto = materie.find((m) => m.id.toString() === materiaSelezionata.toString());
+  const isLogica = materiaOggetto?.nome?.toLowerCase() === 'logica';
 
-    if (!error && data) {
-      setElencoDomande(data);
-    }
-    setCaricamentoDomande(false);
-  }
-
-  const handleLogin = (e) => {
+  // Inserimento singolo manuale
+  const handleSubmitSingola = async (e) => {
     e.preventDefault();
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-    if (inputPassword === adminPassword) {
-      setAutenticato(true);
-      setErrorePassword(false);
-      sessionStorage.setItem('admin_logged', 'true');
-      caricaMaterie();
-    } else {
-      setErrorePassword(true);
-    }
-  };
+    setSalvataggioInCorso(true);
+    setMessaggio({ testo: '', tipo: '' });
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_logged');
-    setAutenticato(false);
-    setInputPassword('');
-  };
-
-  const creaStudente = async (e) => {
-    e.preventDefault();
-    setCaricamentoStudente(true);
-    setMessaggioStudente('');
-
-    try {
-      const res = await fetch('/api/crea-studente', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailStudente, password: passStudente }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessaggioStudente('❌ ' + (data.error || 'Errore nella creazione'));
-      } else {
-        setMessaggioStudente('✅ Account studente creato con successo!');
-        setEmailStudente('');
-        setPassStudente('');
-      }
-    } catch {
-      setMessaggioStudente('❌ Errore di connessione');
-    }
-    setCaricamentoStudente(false);
-  };
-
-  const aggiungiMateria = async (e) => {
-    e.preventDefault();
-    if (!nuovaMateria.trim()) return;
-
-    const { error } = await supabase
-      .from('materie')
-      .insert([{ nome: nuovaMateria.trim(), descrizione: descMateria.trim() }]);
-
-    if (error) {
-      setMessaggioMateria('❌ Errore: ' + error.message);
-    } else {
-      setMessaggioMateria('✅ Materia salvata con successo!');
-      setNuovaMateria('');
-      setDescMateria('');
-      caricaMaterie();
-    }
-  };
-
-  const eliminaMateria = async (idMateria, nomeMateria) => {
-    const conferma = window.confirm(
-      `Sei sicuro di voler eliminare la materia "${nomeMateria}" e tutte le sue domande?`
-    );
-    if (!conferma) return;
-
-    await supabase.from('domande').delete().eq('materia_id', idMateria);
-    const { error } = await supabase.from('materie').delete().eq('id', idMateria);
-
-    if (error) {
-      alert('Errore eliminazione: ' + error.message);
-    } else {
-      caricaMaterie();
-    }
-  };
-
-  const aggiungiDomanda = async (e) => {
-    e.preventDefault();
-    if (!testoDomanda.trim() || !opzioneA.trim() || !opzioneB.trim()) {
-      alert('Compila almeno il testo e le opzioni A e B');
+    if (isLogica && !sottotipologia) {
+      setMessaggio({ testo: 'Per la materia Logica devi selezionare la tipologia specifica!', tipo: 'errore' });
+      setSalvataggioInCorso(false);
       return;
     }
 
-    const { error } = await supabase.from('domande').insert([
-      {
-        materia_id: materiaScelta,
-        testo: testoDomanda.trim(),
-        opzione_a: opzioneA.trim(),
-        opzione_b: opzioneB.trim(),
-        opzione_c: opzioneC.trim() || null,
-        opzione_d: opzioneD.trim() || null,
-        risposta_esatta: rispostaEsatta,
-        spiegazione: spiegazione.trim() || null,
-      },
-    ]);
+    const nuovaDomanda = {
+      materia_id: materiaSelezionata,
+      testo,
+      opzione_a: opzioneA,
+      opzione_b: opzioneB,
+      opzione_c: opzioneC,
+      opzione_d: opzioneD,
+      risposta_esatta: rispostaEsatta,
+      spiegazione: spiegazione || null,
+      sottotipologia: isLogica ? sottotipologia : null
+    };
+
+    const { error } = await supabase.from('domande').insert([nuovaDomanda]);
 
     if (error) {
-      setMessaggioDomanda('❌ Errore: ' + error.message);
+      setMessaggio({ testo: `Errore durante il salvataggio: ${error.message}`, tipo: 'errore' });
     } else {
-      setMessaggioDomanda('✅ Domanda salvata!');
-      setTestoDomanda('');
+      setMessaggio({ testo: 'Domanda inserita con successo!', tipo: 'successo' });
+      // Reset dei campi
+      setTesto('');
       setOpzioneA('');
       setOpzioneB('');
       setOpzioneC('');
       setOpzioneD('');
       setSpiegazione('');
-      if (materiaFiltro === materiaScelta) {
-        caricaDomandePerMateria(materiaScelta);
-      }
+      setRispostaEsatta('A');
     }
+    setSalvataggioInCorso(false);
   };
 
-  const eliminaDomanda = async (domandaId) => {
-    const conferma = window.confirm('Sei sicuro di voler eliminare questa domanda definitivamente?');
-    if (!conferma) return;
-
-    const { error } = await supabase.from('domande').delete().eq('id', domandaId);
-
-    if (error) {
-      alert('Errore eliminazione: ' + error.message);
-    } else {
-      setElencoDomande((prev) => prev.filter((d) => d.id !== domandaId));
-    }
-  };
-
-  const gestisciFileExcel = (e) => {
+  // Funzione parser per file CSV (o Excel esportato in CSV)
+  const handleCSVUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setNomeFileCaricato(file.name);
-    setMessaggioImport('');
+    setCaricamentoFile(true);
+    setMessaggio({ testo: '', tipo: '' });
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async ({ target }) => {
       try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsName = wb.SheetNames[0];
-        const ws = wb.Sheets[wsName];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const text = target.result;
+        // Divide le righe
+        const lines = text.split(/\r\n|\n/).filter((l) => l.trim() !== '');
+        if (lines.length < 2) {
+          setMessaggio({ testo: 'Il file CSV sembra vuoto o privo di intestazioni.', tipo: 'errore' });
+          setCaricamentoFile(false);
+          return;
+        }
 
-        const domandeFormattate = rows
-          .map((r) => {
-            const getVal = (chiavi) => {
-              for (const k of chiavi) {
-                const trovata = Object.keys(r).find(
-                  (col) => col.trim().toLowerCase() === k.toLowerCase()
-                );
-                if (trovata && r[trovata] !== undefined) return String(r[trovata]).trim();
-              }
-              return '';
-            };
+        // Intestazioni (determina se il separatore è virgola o punto e virgola)
+        const separatore = lines[0].includes(';') ? ';' : ',';
+        const headers = lines[0].split(separatore).map((h) => h.trim().toLowerCase().replace(/"/g, ''));
 
-            const testo = getVal(['Testo Domanda', 'Domanda', 'Testo']);
-            const opzA = getVal(['Opzione A', 'Risposta A', 'A']);
-            const opzB = getVal(['Opzione B', 'Risposta B', 'B']);
-            const opzC = getVal(['Opzione C', 'Risposta C', 'C']);
-            const opzD = getVal(['Opzione D', 'Risposta D', 'D']);
-            const esatta = getVal(['Risposta Esatta', 'Esatta', 'Corretta']).toUpperCase();
-            const spieg = getVal(['Spiegazione Didattica', 'Spiegazione', 'Commento']);
-            const materiaNome = getVal(['Materia']);
+        const righeDaInserire = [];
 
-            return {
-              testo,
-              opzione_a: opzA,
-              opzione_b: opzB,
-              opzione_c: opzC || null,
-              opzione_d: opzD || null,
-              risposta_esatta: ['A', 'B', 'C', 'D'].includes(esatta) ? esatta : 'A',
-              spiegazione: spieg || null,
-              materia_nome: materiaNome,
-            };
-          })
-          .filter((d) => d.testo && d.opzione_a && d.opzione_b);
+        for (let i = 1; i < lines.length; i++) {
+          const riga = lines[i].split(separatore).map((val) => val.trim().replace(/^"|"$/g, ''));
+          if (riga.length < 5) continue; // Salta righe incomplete
 
-        setAnteprimaDomande(domandeFormattate);
-        if (domandeFormattate.length === 0) {
-          setMessaggioImport('⚠️ Nessuna domanda valida trovata nel file.');
+          const rowData = {};
+          headers.forEach((h, idx) => {
+            rowData[h] = riga[idx] || '';
+          });
+
+          // Trova il testo, opzioni e risposta esatta (supporta nomi colonna flessibili)
+          const testoQ = rowData['testo'] || rowData['domanda'] || riga[0];
+          const optA = rowData['opzione_a'] || rowData['a'] || riga[1];
+          const optB = rowData['opzione_b'] || rowData['b'] || riga[2];
+          const optC = rowData['opzione_c'] || rowData['c'] || riga[3];
+          const optD = rowData['opzione_d'] || rowData['d'] || riga[4];
+          const corretta = (rowData['risposta_esatta'] || rowData['esatta'] || rowData['risposta_corretta'] || riga[5] || 'A').toUpperCase().trim();
+          const spieg = rowData['spiegazione'] || rowData['commento'] || (riga[6] || null);
+          const subTipo = rowData['sottotipologia'] || rowData['tipologia'] || (riga[7] || null);
+
+          if (testoQ && optA && optB) {
+            righeDaInserire.push({
+              materia_id: materiaSelezionata,
+              testo: testoQ,
+              opzione_a: optA,
+              opzione_b: optB,
+              opzione_c: optC,
+              opzione_d: optD,
+              risposta_esatta: corretta,
+              spiegazione: spieg,
+              sottotipologia: isLogica ? (subTipo || sottotipologia || 'Logica deduttiva e ragionamento') : null
+            });
+          }
+        }
+
+        if (righeDaInserire.length === 0) {
+          setMessaggio({ testo: 'Nessun quesito valido riconosciuto nel file.', tipo: 'errore' });
+          setCaricamentoFile(false);
+          return;
+        }
+
+        const { error } = await supabase.from('domande').insert(righeDaInserire);
+
+        if (error) {
+          setMessaggio({ testo: `Errore caricamento massivo: ${error.message}`, tipo: 'errore' });
         } else {
-          setMessaggioImport(`📊 Lette con successo ${domandeFormattate.length} domande pronte per l'importazione!`);
+          setMessaggio({ testo: `Operazione riuscita: inseriti ${righeDaInserire.length} quesiti!`, tipo: 'successo' });
+          e.target.value = '';
         }
       } catch (err) {
-        setMessaggioImport('❌ Errore durante la lettura del file: ' + err.message);
+        setMessaggio({ testo: `Errore di lettura file: ${err.message}`, tipo: 'errore' });
       }
+      setCaricamentoFile(false);
     };
-    reader.readAsBinaryString(file);
+
+    reader.readAsText(file);
   };
-
-  const confermaImportazione = async () => {
-    if (anteprimaDomande.length === 0) return;
-    setCaricamentoMassivo(true);
-    setMessaggioImport('Salvataggio nel database in corso...');
-
-    try {
-      const payload = anteprimaDomande.map((d) => {
-        let idMateriaDaUsare = materiaImport;
-        if (d.materia_nome) {
-          const matchMateria = materie.find(
-            (m) => m.nome.trim().toLowerCase() === d.materia_nome.trim().toLowerCase()
-          );
-          if (matchMateria) idMateriaDaUsare = matchMateria.id;
-        }
-
-        return {
-          materia_id: idMateriaDaUsare,
-          testo: d.testo,
-          opzione_a: d.opzione_a,
-          opzione_b: d.opzione_b,
-          opzione_c: d.opzione_c,
-          opzione_d: d.opzione_d,
-          risposta_esatta: d.risposta_esatta,
-          spiegazione: d.spiegazione,
-        };
-      });
-
-      const chunkSize = 100;
-      for (let i = 0; i < payload.length; i += chunkSize) {
-        const blocco = payload.slice(i, i + chunkSize);
-        const { error } = await supabase.from('domande').insert(blocco);
-        if (error) throw error;
-      }
-
-      setMessaggioImport(`🎉 Importate con successo ${payload.length} domande!`);
-      setAnteprimaDomande([]);
-      setNomeFileCaricato('');
-      caricaDomandePerMateria(materiaFiltro);
-    } catch (err) {
-      setMessaggioImport('❌ Errore nel salvataggio: ' + err.message);
-    }
-    setCaricamentoMassivo(false);
-  };
-
-  if (!autenticato) {
-    return (
-      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-sm bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl text-center">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl mx-auto mb-3">
-            ⚙️
-          </div>
-          <h1 className="text-xl font-bold text-[#F8FAFC] mb-1">Accesso Amministratore</h1>
-          <p className="text-[#94A3B8] text-xs mb-6">Inserisci la password di sicurezza</p>
-          <form onSubmit={handleLogin} className="flex flex-col gap-3">
-            <input
-              type="password"
-              placeholder="Password..."
-              value={inputPassword}
-              onChange={(e) => setInputPassword(e.target.value)}
-              className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-center text-sm focus:outline-none focus:border-amber-500"
-              required
-            />
-            {errorePassword && (
-              <p className="text-rose-400 text-xs font-semibold">Password errata. Riprova.</p>
-            )}
-            <button
-              type="submit"
-              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
-            >
-              Sblocca Pannello
-            </button>
-          </form>
-          <Link href="/login" className="inline-block mt-5 text-xs text-[#94A3B8] hover:text-amber-400 transition-colors">
-            ← Torna al Login Studenti
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
       <div className="w-full max-w-3xl">
-        {/* INTESTAZIONE */}
-        <div className="flex justify-between items-center mb-8 bg-[#2E343D] p-5 rounded-2xl border border-[#434B57] shadow-sm">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-[#F8FAFC]">Gestione Piattaforma Quiz</h1>
-              <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold px-2 py-0.5 rounded-full">
-                Admin Attivo
-              </span>
-            </div>
-            <p className="text-xs text-[#94A3B8] mt-0.5">Gestisci studenti, materie e banca dati quesiti</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleLogout}
-              className="text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3.5 py-2 rounded-xl hover:bg-rose-500/20 transition-all cursor-pointer"
-            >
-              Esci
-            </button>
-            <Link
-              href="/"
-              className="text-xs font-semibold bg-[#23272D] text-[#F8FAFC] border border-[#434B57] px-3.5 py-2 rounded-xl hover:border-amber-500/50 transition-all"
-            >
-              Vai alla Home
-            </Link>
-          </div>
+        <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl mb-6 shadow-sm">
+          <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1.5 transition-colors">
+            <span>←</span> Torna alla Dashboard
+          </Link>
+          <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+            🔒 Gestione Contenuti
+          </span>
         </div>
 
-        {/* SEZIONE 1: CREA STUDENTE */}
-        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">👤</span>
-            <div>
-              <h2 className="text-base font-bold text-[#F8FAFC]">Crea Nuovo Account Studente</h2>
-              <p className="text-xs text-[#94A3B8]">Genera le credenziali di accesso per un corsista</p>
-            </div>
+        {messaggio.testo && (
+          <div
+            className={`p-4 rounded-2xl mb-6 text-xs font-bold border ${
+              messaggio.tipo === 'successo'
+                ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
+                : 'bg-rose-950/50 border-rose-500/50 text-rose-300'
+            }`}
+          >
+            {messaggio.testo}
           </div>
-          <form onSubmit={creaStudente} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              placeholder="Email corsista"
-              value={emailStudente}
-              onChange={(e) => setEmailStudente(e.target.value)}
-              className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Password (min 6 car.)"
-              value={passStudente}
-              onChange={(e) => setPassStudente(e.target.value)}
-              className="w-full sm:w-56 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              required
-            />
-            <button
-              type="submit"
-              disabled={caricamentoStudente}
-              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer shrink-0 disabled:opacity-50"
-            >
-              {caricamentoStudente ? 'Creazione...' : 'Crea Account'}
-            </button>
-          </form>
-          {messaggioStudente && <p className="text-xs font-semibold mt-3 text-amber-300">{messaggioStudente}</p>}
-        </div>
+        )}
 
-        {/* SEZIONE 2: IMPORTAZIONE MASSIVA EXCEL */}
-        <div className="bg-[#2E343D] p-6 rounded-3xl border border-amber-500/40 mb-8 shadow-sm">
-          <div className="flex items-center gap-2.5 mb-2">
-            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📊</span>
-            <div>
-              <h2 className="text-base font-bold text-[#F8FAFC]">Importazione Massiva da Excel o CSV</h2>
-              <p className="text-xs text-[#94A3B8]">Carica centinaia di domande con un clic tramite il template</p>
-            </div>
-          </div>
-
-          <div className="bg-[#23272D] p-4 rounded-2xl border border-[#434B57] my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-bold text-[#94A3B8] block mb-1">
-                Materia di destinazione predefinita:
-              </label>
-              <select
-                value={materiaImport}
-                onChange={(e) => setMateriaImport(e.target.value)}
-                className="w-full p-2.5 bg-[#2E343D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-xs font-semibold focus:outline-none focus:border-amber-500"
-              >
-                {materie.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[10px] text-[#94A3B8] block mt-1">
-                * Se nel file Excel hai compilato la colonna Materia, verrà assegnata automaticamente.
-              </span>
-            </div>
-
-            <div className="w-full sm:w-auto">
-              <label className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer inline-flex items-center gap-2">
-                <span>📁</span> Scegli File Excel / CSV
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={gestisciFileExcel}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
-
-          {nomeFileCaricato && (
-            <div className="p-3 bg-[#3D2E1E] rounded-xl border border-amber-500/30 flex items-center justify-between text-xs text-amber-300 mb-3">
-              <span>File selezionato: <strong>{nomeFileCaricato}</strong></span>
-              <span className="font-bold">{anteprimaDomande.length} quesiti rilevati</span>
-            </div>
-          )}
-
-          {messaggioImport && (
-            <p className="text-xs font-semibold mb-3 text-amber-300">{messaggioImport}</p>
-          )}
-
-          {anteprimaDomande.length > 0 && (
-            <button
-              onClick={confermaImportazione}
-              disabled={caricamentoMassivo}
-              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
-            >
-              {caricamentoMassivo
-                ? 'Inserimento in corso nel Database...'
-                : `Carica tutte le ${anteprimaDomande.length} domande nel Database 🚀`}
-            </button>
-          )}
-        </div>
-
-        {/* SEZIONE 3: GESTIONE ED ELIMINAZIONE MATERIE */}
-        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📚</span>
-            <div>
-              <h2 className="text-base font-bold text-[#F8FAFC]">Materie d&apos;Esame Attive</h2>
-              <p className="text-xs text-[#94A3B8]">Aggiungi nuove materie o elimina quelle non necessarie</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
+        {/* SELEZIONE MATERIA BASE */}
+        <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl mb-6 shadow-xl">
+          <label className="block text-xs font-black uppercase text-[#94A3B8] tracking-wider mb-2">
+            1. Seleziona la Materia di Destinazione
+          </label>
+          <select
+            value={materiaSelezionata}
+            onChange={(e) => {
+              setMateriaSelezionata(e.target.value);
+              setSottotipologia('');
+            }}
+            className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
+          >
             {materie.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between p-3 bg-[#23272D] rounded-xl border border-[#434B57]"
-              >
-                <div>
-                  <span className="text-xs font-bold text-[#F8FAFC]">{m.nome}</span>
-                  {m.descrizione && (
-                    <span className="block text-[10px] text-[#94A3B8] truncate max-w-[180px]">
-                      {m.descrizione}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => eliminaMateria(m.id, m.nome)}
-                  title={`Elimina ${m.nome}`}
-                  className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer text-xs"
-                >
-                  🗑️
-                </button>
-              </div>
+              <option key={m.id} value={m.id}>
+                {m.nome}
+              </option>
             ))}
-          </div>
+          </select>
 
-          <form onSubmit={aggiungiMateria} className="flex flex-col gap-3 pt-3 border-t border-[#434B57]">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                placeholder="Nuova Materia (es. Diritto)"
-                value={nuovaMateria}
-                onChange={(e) => setNuovaMateria(e.target.value)}
-                className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Breve descrizione (facoltativa)"
-                value={descMateria}
-                onChange={(e) => setDescMateria(e.target.value)}
-                className="flex-1 p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              />
-              <button
-                type="submit"
-                className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black px-5 py-3 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer shrink-0"
-              >
-                Aggiungi
-              </button>
+          {/* SOTTOTIPOLOGIA LOGICA (COMPARE SOLO SE LOGICA) */}
+          {isLogica && (
+            <div className="mt-4 pt-4 border-t border-[#434B57]">
+              <label className="block text-xs font-black uppercase text-amber-400 tracking-wider mb-2">
+                ⚡ Tipologia Specifica di Logica:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {TIPI_LOGICA.map((tipo) => {
+                  const attivo = sottotipologia === tipo;
+                  return (
+                    <button
+                      type="button"
+                      key={tipo}
+                      onClick={() => setSottotipologia(tipo)}
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
+                        attivo
+                          ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-extrabold shadow-md shadow-amber-500/20'
+                          : 'bg-[#23272D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            {messaggioMateria && <p className="text-xs font-semibold text-amber-300">{messaggioMateria}</p>}
-          </form>
+          )}
         </div>
 
-        {/* SEZIONE 4: AGGIUNGI SINGOLA DOMANDA */}
-        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] mb-8 shadow-sm">
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">📝</span>
-            <h2 className="text-base font-bold text-[#F8FAFC]">Aggiungi Singola Domanda</h2>
-          </div>
-          <form onSubmit={aggiungiDomanda} className="flex flex-col gap-3">
+        {/* CARICAMENTO FILE EXCEL / CSV */}
+        <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl mb-8 shadow-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-xl">📑</span>
             <div>
-              <label className="text-xs font-semibold text-[#94A3B8] block mb-1">Seleziona la materia:</label>
-              <select
-                value={materiaScelta}
-                onChange={(e) => setMateriaScelta(e.target.value)}
-                className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              >
-                {materie.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-              </select>
+              <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Rapida (CSV / Excel esportato in CSV)</h2>
+              <p className="text-[11px] text-[#94A3B8]">
+                Intestazioni supportate: <code>testo; opzione_a; opzione_b; opzione_c; opzione_d; risposta_esatta; spiegazione; sottotipologia</code>
+              </p>
             </div>
+          </div>
 
-            <textarea
-              rows="3"
-              placeholder="Scrivi qui il quesito d'esame..."
-              value={testoDomanda}
-              onChange={(e) => setTestoDomanda(e.target.value)}
-              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              required
+          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#434B57] hover:border-amber-500/50 rounded-2xl cursor-pointer bg-[#23272D]/50 transition-all">
+            <span className="text-xs text-[#94A3B8] font-bold">
+              {caricamentoFile ? 'Elaborazione in corso...' : 'Clicca per caricare il file .CSV'}
+            </span>
+            <input
+              type="file"
+              accept=".csv"
+              disabled={caricamentoFile}
+              onChange={handleCSVUpload}
+              className="hidden"
             />
+          </label>
+        </div>
+
+        {/* FORM MANUALE SINGOLO */}
+        <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xl">✏️</span>
+            <div>
+              <h2 className="text-sm font-bold text-[#F8FAFC]">Inserimento Singola Domanda</h2>
+              <p className="text-[11px] text-[#94A3B8]">Compila tutti i campi per registrare il quesito</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmitSingola} className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-bold text-[#94A3B8] mb-1">Testo del Quesito</label>
+              <textarea
+                required
+                rows={3}
+                value={testo}
+                onChange={(e) => setTesto(e.target.value)}
+                placeholder="Inserisci qui il testo completo della domanda..."
+                className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="Opzione A"
-                value={opzioneA}
-                onChange={(e) => setOpzioneA(e.target.value)}
-                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Opzione B"
-                value={opzioneB}
-                onChange={(e) => setOpzioneB(e.target.value)}
-                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Opzione C (facoltativa)"
-                value={opzioneC}
-                onChange={(e) => setOpzioneC(e.target.value)}
-                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Opzione D (facoltativa)"
-                value={opzioneD}
-                onChange={(e) => setOpzioneD(e.target.value)}
-                className="p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm"
-              />
+              <div>
+                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione A</label>
+                <input
+                  required
+                  type="text"
+                  value={opzioneA}
+                  onChange={(e) => setOpzioneA(e.target.value)}
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione B</label>
+                <input
+                  required
+                  type="text"
+                  value={opzioneB}
+                  onChange={(e) => setOpzioneB(e.target.value)}
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione C</label>
+                <input
+                  type="text"
+                  value={opzioneC}
+                  onChange={(e) => setOpzioneC(e.target.value)}
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione D</label>
+                <input
+                  type="text"
+                  value={opzioneD}
+                  onChange={(e) => setOpzioneD(e.target.value)}
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-[#94A3B8] block mb-1">Risposta Corretta:</label>
-              <select
-                value={rispostaEsatta}
-                onChange={(e) => setRispostaEsatta(e.target.value)}
-                className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-              >
-                <option value="A">Opzione A</option>
-                <option value="B">Opzione B</option>
-                <option value="C">Opzione C</option>
-                <option value="D">Opzione D</option>
-              </select>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-amber-400 mb-1">Risposta Corretta</label>
+                <select
+                  value={rispostaEsatta}
+                  onChange={(e) => setRispostaEsatta(e.target.value)}
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="A">Opzione A</option>
+                  <option value="B">Opzione B</option>
+                  <option value="C">Opzione C</option>
+                  <option value="D">Opzione D</option>
+                </select>
+              </div>
 
-            <textarea
-              rows="2"
-              placeholder="Spiegazione didattica (Tasto Spiegamelo)..."
-              value={spiegazione}
-              onChange={(e) => setSpiegazione(e.target.value)}
-              className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-sm focus:outline-none focus:border-amber-500"
-            />
+              <div>
+                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Spiegazione Didattica (Opzionale)</label>
+                <input
+                  type="text"
+                  value={spiegazione}
+                  onChange={(e) => setSpiegazione(e.target.value)}
+                  placeholder="es. Regola logico-matematica o articolo di riferimento"
+                  className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
 
             <button
               type="submit"
-              className="bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
+              disabled={salvataggioInCorso}
+              className="mt-2 w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
             >
-              Salva Domanda
+              {salvataggioInCorso ? 'Salvataggio in corso...' : 'Salva Domanda nel Database 💾'}
             </button>
-            {messaggioDomanda && <p className="text-xs font-semibold text-amber-300">{messaggioDomanda}</p>}
           </form>
         </div>
-
-        {/* SEZIONE 5: BANCA DATI ED ELIMINAZIONE */}
-        <div className="bg-[#2E343D] p-6 rounded-3xl border border-[#434B57] shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">🗂️</span>
-              <div>
-                <h2 className="text-base font-bold text-[#F8FAFC]">Banca Dati Domande</h2>
-                <p className="text-xs text-[#94A3B8]">Visualizza ed elimina i quesiti nel database</p>
-              </div>
-            </div>
-
-            <div className="w-full sm:w-64">
-              <select
-                value={materiaFiltro}
-                onChange={(e) => {
-                  setMateriaFiltro(e.target.value);
-                  caricaDomandePerMateria(e.target.value);
-                }}
-                className="w-full p-2.5 bg-[#23272D] border border-[#434B57] rounded-xl text-[#F8FAFC] text-xs font-semibold focus:outline-none focus:border-amber-500"
-              >
-                {materie.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    Materia: {m.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {caricamentoDomande ? (
-            <div className="text-center py-8 text-xs text-[#94A3B8]">Caricamento quesiti...</div>
-          ) : elencoDomande.length === 0 ? (
-            <div className="text-center py-8 bg-[#23272D] rounded-2xl border border-dashed border-[#434B57]">
-              <p className="text-xs text-[#94A3B8]">Nessuna domanda presente per questa materia.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="text-xs text-[#94A3B8] font-medium mb-1">
-                Trovate <strong>{elencoDomande.length}</strong> domande:
-              </div>
-              {elencoDomande.map((d, index) => (
-                <div
-                  key={d.id}
-                  className="p-4 rounded-2xl border border-[#434B57] bg-[#23272D] flex items-start justify-between gap-4"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[11px] font-bold bg-[#2E343D] text-[#F8FAFC] px-2 py-0.5 rounded-md border border-[#434B57]">
-                        #{index + 1}
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/30">
-                        Esatta: {d.risposta_esatta}
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-[#F8FAFC] leading-snug mb-2">{d.testo}</p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-[#94A3B8]">
-                      <span><strong className="text-[#F8FAFC]">A:</strong> {d.opzione_a}</span>
-                      <span><strong className="text-[#F8FAFC]">B:</strong> {d.opzione_b}</span>
-                      {d.opzione_c && <span><strong className="text-[#F8FAFC]">C:</strong> {d.opzione_c}</span>}
-                      {d.opzione_d && <span><strong className="text-[#F8FAFC]">D:</strong> {d.opzione_d}</span>}
-                    </div>
-
-                    {d.spiegazione && (
-                      <div className="mt-2 text-[11px] text-amber-300 bg-[#3D2E1E] p-2.5 rounded-xl border border-amber-500/30">
-                        <strong>💡 Spiegazione:</strong> {d.spiegazione}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => eliminaDomanda(d.id)}
-                    title="Elimina domanda"
-                    className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/20 shrink-0 cursor-pointer"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-    </main>
+    </div>
   );
 }
