@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { supabase } from '../../supabase';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,7 +54,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
             <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
-              Email Studente
+              Email
             </label>
             <input
               type="email"
@@ -89,16 +88,6 @@ export default function LoginPage() {
             {caricamento ? 'Accesso in corso...' : 'Accedi al Simulatore'}
           </button>
         </form>
-
-        {/* LINK ADMIN FUNZIONANTE */}
-        <div className="mt-8 pt-6 border-t border-[#434B57] text-center">
-          <Link
-            href="/admin"
-            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 transition-colors inline-block cursor-pointer py-1"
-          >
-            Sei l&apos;amministratore? Accedi qui →
-          </Link>
-        </div>
       </div>
     </main>
   );
