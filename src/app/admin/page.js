@@ -13,7 +13,7 @@ const TIPI_LOGICA = [
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tabAttiva, setTabAttiva] = useState('domande'); // 'domande' | 'materie' | 'utenti' | 'archivio'
+  const [tabAttiva, setTabAttiva] = useState('domande');
 
   const [materie, setMaterie] = useState([]);
   const [materiaSelezionata, setMateriaSelezionata] = useState('');
@@ -86,7 +86,7 @@ export default function AdminPage() {
   const materiaOggetto = materie.find((m) => m.id.toString() === materiaSelezionata.toString());
   const isLogica = materiaOggetto?.nome?.toLowerCase() === 'logica';
 
-  // 1. INSERIMENTO DOMANDA SINGOLA
+  // INSERIMENTO DOMANDA SINGOLA
   const handleCreaDomanda = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -127,7 +127,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // 2. CREA NUOVA MATERIA
+  // CREA NUOVA MATERIA
   const handleCreaMateria = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -148,13 +148,13 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // 3. REGISTRAZIONE NUOVO STUDENTE
+  // REGISTRAZIONE NUOVO STUDENTE
   const handleCreaStudente = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
     setMessaggio({ testo: '', tipo: '' });
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: nuovoUserEmail.trim(),
       password: nuovoUserPassword,
     });
@@ -169,7 +169,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // 4. ELIMINA DOMANDA DALL'ARCHIVIO
+  // ELIMINA DOMANDA DALL'ARCHIVIO
   const handleEliminaDomanda = async (domandaId) => {
     if (!confirm('Sei sicuro di voler eliminare definitivamente questo quesito?')) return;
     const { error } = await supabase.from('domande').delete().eq('id', domandaId);
@@ -178,7 +178,7 @@ export default function AdminPage() {
     }
   };
 
-  // 5. IMPORTAZIONE RAPIDA CSV / EXCEL
+  // IMPORTAZIONE CSV INTELLIGENTE (RICONOSCE MATERIA E ALLINEA LE COLONNE)
   const handleCSVUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -199,29 +199,39 @@ export default function AdminPage() {
 
         const separatore = lines[0].includes(';') ? ';' : ',';
         const headers = lines[0].split(separatore).map((h) => h.trim().toLowerCase().replace(/"/g, ''));
+        
+        // Verifica se la prima colonna è "materia"
+        const haColonnaMateria = headers[0].includes('materia');
+        const offset = haColonnaMateria ? 1 : 0;
+
         const righe = [];
 
         for (let i = 1; i < lines.length; i++) {
           const riga = lines[i].split(separatore).map((val) => val.trim().replace(/^"|"$/g, ''));
           if (riga.length < 5) continue;
 
-          const rowData = {};
-          headers.forEach((h, idx) => {
-            rowData[h] = riga[idx] || '';
-          });
+          const qMateriaNome = haColonnaMateria ? riga[0] : null;
+          const qTesto = riga[0 + offset];
+          const optA = riga[1 + offset];
+          const optB = riga[2 + offset];
+          const optC = riga[3 + offset] || '';
+          const optD = riga[4 + offset] || '';
+          const corr = (riga[5 + offset] || 'A').toUpperCase().trim();
+          const spieg = riga[6 + offset] || null;
+          const subTipo = riga[7 + offset] || (isLogica ? 'Logica numerica' : null);
 
-          const qTesto = rowData['testo'] || rowData['domanda'] || riga[0];
-          const optA = rowData['opzione_a'] || rowData['a'] || riga[1];
-          const optB = rowData['opzione_b'] || rowData['b'] || riga[2];
-          const optC = rowData['opzione_c'] || rowData['c'] || riga[3];
-          const optD = rowData['opzione_d'] || rowData['d'] || riga[4];
-          const corr = (rowData['risposta_esatta'] || rowData['esatta'] || riga[5] || 'A').toUpperCase().trim();
-          const spieg = rowData['spiegazione'] || rowData['commento'] || (riga[6] || null);
-          const subTipo = rowData['sottotipologia'] || rowData['tipologia'] || (riga[7] || null);
+          // Assegna la materia esatta cercandola per nome
+          let targetMateriaId = materiaSelezionata;
+          if (qMateriaNome) {
+            const matTrovata = materie.find(
+              (m) => m.nome.toLowerCase() === qMateriaNome.toLowerCase()
+            );
+            if (matTrovata) targetMateriaId = matTrovata.id;
+          }
 
           if (qTesto && optA && optB) {
             righe.push({
-              materia_id: materiaSelezionata,
+              materia_id: targetMateriaId,
               testo: qTesto,
               opzione_a: optA,
               opzione_b: optB,
@@ -229,7 +239,7 @@ export default function AdminPage() {
               opzione_d: optD,
               risposta_esatta: corr,
               spiegazione: spieg,
-              sottotipologia: isLogica ? (subTipo || sottotipologia || 'Logica deduttiva e ragionamento') : null
+              sottotipologia: subTipo
             });
           }
         }
@@ -244,7 +254,7 @@ export default function AdminPage() {
         if (error) {
           setMessaggio({ testo: `Errore importazione: ${error.message}`, tipo: 'errore' });
         } else {
-          setMessaggio({ testo: `Importazione completata: inserite ${righe.length} domande!`, tipo: 'successo' });
+          setMessaggio({ testo: `Importazione completata con successo: inserite ${righe.length} domande!`, tipo: 'successo' });
           e.target.value = '';
         }
       } catch (err) {
@@ -259,7 +269,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
       <div className="w-full max-w-4xl">
-        {/* HEADER BAR */}
+        {/* HEADER */}
         <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl mb-6 shadow-sm">
           <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1.5 transition-colors">
             <span>←</span> Torna alla Dashboard
@@ -269,7 +279,7 @@ export default function AdminPage() {
           </span>
         </div>
 
-        {/* NOTIFICA ESITO */}
+        {/* NOTIFICHE */}
         {messaggio.testo && (
           <div
             className={`p-4 rounded-2xl mb-6 text-xs font-bold border ${
@@ -282,7 +292,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TABS DI NAVIGAZIONE */}
+        {/* TABS */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           <button
             type="button"
@@ -330,7 +340,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* CONTENUTO TAB 1: INSERISCI DOMANDE */}
+        {/* TAB 1: DOMANDE */}
         {tabAttiva === 'domande' && (
           <div className="flex flex-col gap-6">
             <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
@@ -377,14 +387,14 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* CSV UPLOAD */}
+            {/* CARICAMENTO CSV */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">📑</span>
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Rapida (CSV / Excel)</h2>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Colonne: <code>testo; opzione_a; opzione_b; opzione_c; opzione_d; risposta_esatta; spiegazione; sottotipologia</code>
+                    Supporta sia file con o senza colonna iniziale Materia.
                   </p>
                 </div>
               </div>
@@ -396,7 +406,7 @@ export default function AdminPage() {
               </label>
             </div>
 
-            {/* FORM MANUALE */}
+            {/* FORM SINGOLO */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">✏️</span>
@@ -480,7 +490,7 @@ export default function AdminPage() {
                       type="text"
                       value={spiegazione}
                       onChange={(e) => setSpiegazione(e.target.value)}
-                      placeholder="Commento, norma o trucco di risoluzione..."
+                      placeholder="Commento o trucco di risoluzione..."
                       className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -498,14 +508,14 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* CONTENUTO TAB 2: GESTIONE MATERIE */}
+        {/* TAB 2: MATERIE */}
         {tabAttiva === 'materie' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex items-center gap-3 mb-6">
               <span className="text-xl">📚</span>
               <div>
                 <h2 className="text-sm font-bold text-[#F8FAFC]">Aggiungi una Nuova Materia</h2>
-                <p className="text-[11px] text-[#94A3B8]">Crea una nuova categoria di quesiti (es. Informatica, Inglese)</p>
+                <p className="text-[11px] text-[#94A3B8]">Crea una nuova categoria di quesiti</p>
               </div>
             </div>
 
@@ -517,7 +527,7 @@ export default function AdminPage() {
                   type="text"
                   value={nuovaMateriaNome}
                   onChange={(e) => setNuovaMateriaNome(e.target.value)}
-                  placeholder="es. Ordinamento Giudiziario"
+                  placeholder="es. Informatica"
                   className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -528,7 +538,7 @@ export default function AdminPage() {
                   type="text"
                   value={nuovaMateriaDesc}
                   onChange={(e) => setNuovaMateriaDesc(e.target.value)}
-                  placeholder="es. Normativa su magistratura e uffici giudiziari"
+                  placeholder="Descrizione sintetica..."
                   className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -544,7 +554,7 @@ export default function AdminPage() {
 
             <div className="border-t border-[#434B57] pt-6">
               <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-3">
-                Materie Attualmente Presenti ({materie.length})
+                Materie Presenti ({materie.length})
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {materie.map((m) => (
@@ -563,14 +573,14 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* CONTENUTO TAB 3: AGGIUNGI ACCOUNT STUDENTE */}
+        {/* TAB 3: ACCOUNT */}
         {tabAttiva === 'utenti' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex items-center gap-3 mb-6">
               <span className="text-xl">👥</span>
               <div>
                 <h2 className="text-sm font-bold text-[#F8FAFC]">Registra Account per uno Studente</h2>
-                <p className="text-[11px] text-[#94A3B8]">Crea le credenziali d&apos;accesso per consentire al corsista di accedere al simulatore</p>
+                <p className="text-[11px] text-[#94A3B8]">Crea le credenziali d&apos;accesso per i corsisti</p>
               </div>
             </div>
 
@@ -610,13 +620,13 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* CONTENUTO TAB 4: CONSULTA ARCHIVIO E BANCA DATI */}
+        {/* TAB 4: ARCHIVIO */}
         {tabAttiva === 'archivio' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-sm font-bold text-[#F8FAFC]">Archivio Domande Registrate</h2>
-                <p className="text-[11px] text-[#94A3B8]">Visualizza i quesiti caricati, verifica le tipologie ed elimina gli errori</p>
+                <h2 className="text-sm font-bold text-[#F8FAFC]">Archivio Domande</h2>
+                <p className="text-[11px] text-[#94A3B8]">Visualizza i quesiti caricati ed elimina eventuali errori</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -635,9 +645,9 @@ export default function AdminPage() {
             </div>
 
             {caricamentoArchivio ? (
-              <div className="text-center py-8 text-xs font-bold text-amber-400">Caricamento archivio in corso...</div>
+              <div className="text-center py-8 text-xs font-bold text-amber-400">Caricamento archivio...</div>
             ) : elencoDomande.length === 0 ? (
-              <div className="text-center py-8 text-xs text-[#94A3B8]">Nessun quesito trovato per questo filtro.</div>
+              <div className="text-center py-8 text-xs text-[#94A3B8]">Nessun quesito trovato.</div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
                 {elencoDomande.map((d) => (
