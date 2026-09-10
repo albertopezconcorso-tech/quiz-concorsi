@@ -13,7 +13,11 @@ const TIPI_LOGICA = [
 ];
 
 export default function AdminPage() {
+  // === UNICA EMAIL ABILITATA AD ACCEDERE COME AMMINISTRATORE ===
+  const EMAIL_ADMIN_AUTORIZZATO = 'albertoadmin@live.it';
+
   const router = useRouter();
+  const [autorizzato, setAutorizzato] = useState(false);
   const [tabAttiva, setTabAttiva] = useState('domande');
 
   // Dati di base
@@ -53,17 +57,23 @@ export default function AdminPage() {
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [caricamentoFile, setCaricamentoFile] = useState(false);
 
+  // CONTROLLO DI SICUREZZA FERREO: SOLO ALBERTOADMIN@LIVE.IT PUÒ ENTRARE
   useEffect(() => {
-    async function initAdmin() {
+    async function verificaAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
+
+      // Se non c'è login o l'email non corrisponde: espulsione immediata al login
+      if (!session || session.user?.email?.toLowerCase() !== EMAIL_ADMIN_AUTORIZZATO.toLowerCase()) {
+        await supabase.auth.signOut();
+        router.replace('/login');
         return;
       }
+
+      setAutorizzato(true);
       await caricaMaterie();
       await aggiornaConteggi();
     }
-    initAdmin();
+    verificaAdmin();
   }, [router]);
 
   async function caricaMaterie() {
@@ -87,14 +97,12 @@ export default function AdminPage() {
     }
   }
 
-  // CARICA ARCHIVIO QUANDO CAMBIA MATERIA O TAB
   useEffect(() => {
     if (tabAttiva === 'archivio' && materiaArchivioAttiva) {
       caricaDomandeMateria(materiaArchivioAttiva);
     }
   }, [tabAttiva, materiaArchivioAttiva]);
 
-  // CARICA STUDENTI QUANDO SI APRE IL TAB UTENTI
   useEffect(() => {
     if (tabAttiva === 'utenti') {
       caricaStudenti();
@@ -117,16 +125,20 @@ export default function AdminPage() {
 
   async function caricaStudenti() {
     setCaricamentoStudenti(true);
-    // Nota: legge dal profilo pubblico o tenta la lista
     const { data, error } = await supabase.from('profili').select('*').order('created_at', { ascending: false });
     if (!error && data) {
       setStudenti(data);
     } else {
-      // Fallback da errori_utente o vista se profili non esiste
       setStudenti([]);
     }
     setCaricamentoStudenti(false);
   }
+
+  // TASTO LOGOUT REALE: DISTRUGGE LA SESSIONE NEL BROWSER
+  const handleLogoutAdmin = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
 
   const materiaOggetto = materie.find((m) => m.id.toString() === materiaSelezionata.toString());
   const isLogica = materiaOggetto?.nome?.toLowerCase() === 'logica';
@@ -134,7 +146,7 @@ export default function AdminPage() {
   const materiaArchivioOggetto = materie.find((m) => m.id.toString() === materiaArchivioAttiva?.toString());
   const isArchivioLogica = materiaArchivioOggetto?.nome?.toLowerCase() === 'logica';
 
-  // 1. INSERISCI DOMANDA SINGOLA
+  // 1. INSERIMENTO DOMANDA SINGOLA
   const handleCreaDomanda = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -200,7 +212,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // 3. CREA ACCOUNT STUDENTE
+  // 3. REGISTRA ACCOUNT STUDENTE
   const handleCreaStudente = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -214,7 +226,6 @@ export default function AdminPage() {
     if (error) {
       setMessaggio({ testo: `Errore creazione utente: ${error.message}`, tipo: 'errore' });
     } else {
-      // Salva nel registro profili se presente la tabella
       if (data?.user) {
         await supabase.from('profili').upsert({
           id: data.user.id,
@@ -222,7 +233,7 @@ export default function AdminPage() {
           created_at: new Date().toISOString()
         });
       }
-      setMessaggio({ testo: `Account studente registrato: ${nuovoUserEmail}!`, tipo: 'successo' });
+      setMessaggio({ testo: `Account studente creato con successo per: ${nuovoUserEmail}!`, tipo: 'successo' });
       setNuovoUserEmail('');
       setNuovoUserPassword('');
       await caricaStudenti();
@@ -230,7 +241,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // 4. ELIMINA STUDENTE
+  // 4. REVOCA ACCOUNT STUDENTE
   const handleEliminaStudente = async (studenteId, email) => {
     if (!confirm(`Sei sicuro di voler revocare l'account di ${email}?`)) return;
     await supabase.from('profili').delete().eq('id', studenteId);
@@ -238,9 +249,9 @@ export default function AdminPage() {
     setMessaggio({ testo: `Account ${email} rimosso con successo.`, tipo: 'successo' });
   };
 
-  // 5. ELIMINA DOMANDA
+  // 5. ELIMINA DOMANDA DALL'ARCHIVIO
   const handleEliminaDomanda = async (domandaId) => {
-    if (!confirm('Eliminare definitivamente questo quesito?')) return;
+    if (!confirm('Vuoi eliminare definitivamente questo quesito?')) return;
     const { error } = await supabase.from('domande').delete().eq('id', domandaId);
     if (!error) {
       setElencoDomande((prev) => prev.filter((d) => d.id !== domandaId));
@@ -326,7 +337,7 @@ export default function AdminPage() {
       }
 
       if (righeDaInserire.length === 0) {
-        setMessaggio({ testo: 'Nessun quesito valido riconosciuto.', tipo: 'errore' });
+        setMessaggio({ testo: 'Nessun quesito valido trovato nel file Excel.', tipo: 'errore' });
         setCaricamentoFile(false);
         return;
       }
@@ -349,12 +360,9 @@ export default function AdminPage() {
   // FILTRO DI RICERCA LIVE IN ARCHIVIO
   const domandeFiltrate = useMemo(() => {
     return elencoDomande.filter((d) => {
-      // Filtro sottotipologia (solo per Logica)
       if (isArchivioLogica && sottotipoArchivioFiltro !== 'tutti') {
         if (d.sottotipologia !== sottotipoArchivioFiltro) return false;
       }
-
-      // Filtro ricerca per parola chiave (lente d'ingrandimento)
       if (!testoRicerca.trim()) return true;
       const q = testoRicerca.toLowerCase();
       return (
@@ -370,21 +378,37 @@ export default function AdminPage() {
 
   const totaleComplessivo = Object.values(conteggiMaterie).reduce((acc, curr) => acc + curr, 0);
 
+  // SCHERMATA DI CARICAMENTO DI SICUREZZA
+  if (!autorizzato) {
+    return (
+      <div className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-400 font-bold text-sm">
+        Verifica credenziali Amministratore in corso... 🔒
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
       <div className="w-full max-w-5xl">
-        {/* HEADER */}
+        {/* HEADER CON TASTO DI LOGOUT REALE */}
         <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl mb-6 shadow-sm">
           <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1.5 transition-colors">
             <span>←</span> Torna alla Dashboard
           </Link>
+
           <div className="flex items-center gap-3">
-            <span className="text-xs font-black text-slate-400">
-              Totale Quesiti nel DB: <strong className="text-amber-400">{totaleComplessivo}</strong>
+            <span className="text-xs font-bold text-[#94A3B8] hidden sm:inline">
+              Quesiti DB: <strong className="text-amber-400">{totaleComplessivo}</strong>
             </span>
-            <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-              <span>🔒</span> Admin
-            </span>
+
+            {/* TASTO CHE DISTRUGGE LA SESSIONE E RICHIEDE LA PASSWORD */}
+            <button
+              type="button"
+              onClick={handleLogoutAdmin}
+              className="text-xs font-black text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <span>🚪</span> Esci dall&apos;Admin
+            </button>
           </div>
         </div>
 
@@ -423,7 +447,7 @@ export default function AdminPage() {
                 : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
             }`}
           >
-            <span>📚</span> Materie & Resoconto
+            <span>📚</span> Materie & Statistiche
           </button>
           <button
             type="button"
@@ -496,20 +520,20 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* CARICAMENTO FILE */}
+            {/* IMPORTAZIONE FILE EXCEL (.xlsx) O CSV */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">📊</span>
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Diretta Excel (.xlsx) o CSV</h2>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Carica il file originale Excel senza conversione. Le colonne rimarranno perfettamente allineate.
+                    Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al loro posto.
                   </p>
                 </div>
               </div>
               <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#434B57] hover:border-amber-500/50 rounded-2xl cursor-pointer bg-[#23272D]/50 transition-all">
                 <span className="text-xs text-[#94A3B8] font-bold">
-                  {caricamentoFile ? 'Caricamento in corso...' : 'Clicca per caricare il file .XLSX o .CSV'}
+                  {caricamentoFile ? 'Caricamento in corso...' : 'Clicca per caricare file .XLSX o .CSV'}
                 </span>
                 <input
                   type="file"
@@ -521,7 +545,7 @@ export default function AdminPage() {
               </label>
             </div>
 
-            {/* FORM MANUALE */}
+            {/* INSERIMENTO MANUALE */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">✏️</span>
@@ -605,7 +629,7 @@ export default function AdminPage() {
                       type="text"
                       value={spiegazione}
                       onChange={(e) => setSpiegazione(e.target.value)}
-                      placeholder="Commento risolutivo..."
+                      placeholder="Commento didattico..."
                       className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -623,7 +647,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 2: MATERIE & RESOCONTO */}
+        {/* TAB 2: MATERIE & STATISTICHE */}
         {tabAttiva === 'materie' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-8">
             <div>
@@ -631,7 +655,7 @@ export default function AdminPage() {
                 <span className="text-xl">📊</span>
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Resoconto Totale Domande per Materia</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Panoramica delle banche dati caricate sul simulatore</p>
+                  <p className="text-[11px] text-[#94A3B8]">Panoramica esatta dei quesiti caricati sul simulatore</p>
                 </div>
               </div>
 
@@ -643,7 +667,7 @@ export default function AdminPage() {
                       <h3 className="text-sm font-extrabold text-[#F8FAFC]">{m.nome}</h3>
                     </div>
                     <div className="mt-4 pt-3 border-t border-[#434B57]/50 flex items-center justify-between">
-                      <span className="text-xs text-[#94A3B8]">Domande totali:</span>
+                      <span className="text-xs text-[#94A3B8]">Domande nel DB:</span>
                       <span className="text-base font-black text-amber-400">
                         {conteggiMaterie[m.id] || 0}
                       </span>
@@ -653,13 +677,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* CREA NUOVA MATERIA */}
             <div className="border-t border-[#434B57] pt-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-xl">➕</span>
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Aggiungi una Nuova Materia</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Crea una nuova sezione di studio nel database</p>
+                  <p className="text-[11px] text-[#94A3B8]">Crea una nuova sezione di studio</p>
                 </div>
               </div>
 
@@ -672,17 +695,17 @@ export default function AdminPage() {
                       type="text"
                       value={nuovaMateriaNome}
                       onChange={(e) => setNuovaMateriaNome(e.target.value)}
-                      placeholder="es. Contabilità di Stato"
+                      placeholder="es. Diritto Amministrativo"
                       className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Descrizione Breve (Opzionale)</label>
+                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Descrizione (Opzionale)</label>
                     <input
                       type="text"
                       value={nuovaMateriaDesc}
                       onChange={(e) => setNuovaMateriaDesc(e.target.value)}
-                      placeholder="es. Principi contabili ed entrate"
+                      placeholder="Descrizione sintetica..."
                       className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -700,16 +723,15 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: GESTIONE ACCOUNT & STUDENTI */}
+        {/* TAB 3: GESTIONE ACCOUNT */}
         {tabAttiva === 'utenti' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-8">
-            {/* CREAZIONE ACCOUNT */}
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">👤</span>
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Registra Nuovo Studente</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Crea le credenziali di accesso per il corsista</p>
+                  <p className="text-[11px] text-[#94A3B8]">Crea le credenziali d&apos;accesso per un corsista</p>
                 </div>
               </div>
 
@@ -749,12 +771,11 @@ export default function AdminPage() {
               </form>
             </div>
 
-            {/* LISTA ACCOUNT ATTIVI */}
             <div className="border-t border-[#434B57] pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-[#F8FAFC]">Account Studenti Attivi</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Gestisci gli allievi abilitati all&apos;uso della piattaforma</p>
+                  <p className="text-[11px] text-[#94A3B8]">Gestisci gli utenti che possono accedere ai quiz</p>
                 </div>
                 <button
                   type="button"
@@ -769,7 +790,7 @@ export default function AdminPage() {
                 <div className="text-center py-6 text-xs text-amber-400">Caricamento account...</div>
               ) : studenti.length === 0 ? (
                 <div className="p-6 bg-[#23272D] border border-[#434B57] rounded-2xl text-center text-xs text-[#94A3B8]">
-                  Nessun profilo registrato al momento o registrazione tramite Supabase Auth diretta.
+                  Nessun profilo registrato al momento.
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto">
@@ -809,10 +830,10 @@ export default function AdminPage() {
             <div>
               <h2 className="text-sm font-bold text-[#F8FAFC]">Archivio Domande per Argomento</h2>
               <p className="text-[11px] text-[#94A3B8] mb-4">
-                Seleziona prima la materia per consultare i quesiti associati
+                Seleziona una materia per consultare solo i suoi quesiti
               </p>
 
-              {/* TASTI SELEZIONE MATERIA */}
+              {/* PULSANTI MATERIE */}
               <div className="flex flex-wrap gap-2">
                 {materie.map((m) => {
                   const isActive = materiaArchivioAttiva === m.id.toString();
@@ -841,7 +862,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* SOTTOTIPOLOGIE PER LOGICA */}
+            {/* SOTTOTIPOLOGIE SE LOGICA */}
             {isArchivioLogica && (
               <div className="p-3 bg-[#23272D] border border-[#434B57] rounded-2xl flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-amber-400 mr-2">Sottotipologia:</span>
@@ -873,7 +894,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* BARRA DI RICERCA CON LENTE */}
+            {/* RICERCA CON LENTE */}
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base text-[#94A3B8]">
                 🔍
@@ -882,7 +903,7 @@ export default function AdminPage() {
                 type="text"
                 value={testoRicerca}
                 onChange={(e) => setTestoRicerca(e.target.value)}
-                placeholder="Cerca per testo, parola chiave, risposta o spiegazione..."
+                placeholder="Cerca testo, parola chiave o spiegazione..."
                 className="w-full pl-10 pr-4 py-3 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-colors"
               />
               {testoRicerca && (
@@ -896,7 +917,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* LISTA RISULTATI */}
+            {/* RISULTATI */}
             {caricamentoArchivio ? (
               <div className="text-center py-10 text-xs font-bold text-amber-400">
                 Caricamento quesiti...
@@ -905,7 +926,7 @@ export default function AdminPage() {
               <div className="p-8 bg-[#23272D] border border-[#434B57] rounded-2xl text-center text-xs text-[#94A3B8]">
                 {testoRicerca
                   ? `Nessun quesito corrisponde alla ricerca "${testoRicerca}".`
-                  : 'Nessuna domanda presente per questo argomento.'}
+                  : 'Nessuna domanda presente per questa materia.'}
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
