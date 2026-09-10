@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { supabase } from '../../../supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function mescolaArray(array) {
@@ -23,13 +23,18 @@ const OPZIONI_LOGICA = [
 
 export default function QuizPage({ params }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const unwrappedParams = use(params);
   const materiaId = unwrappedParams?.id;
+
+  // Lettura della quantità personalizzata se passata via URL (?q=... o ?numero=...)
+  const quantitaParam = searchParams.get('q') || searchParams.get('numero') || searchParams.get('quantita');
+  const limitePersonalizzato = quantitaParam && !isNaN(parseInt(quantitaParam)) ? parseInt(quantitaParam) : null;
 
   const [tutteLeDomande, setTutteLeDomande] = useState([]);
   const [domande, setDomande] = useState([]);
   const [materia, setMateria] = useState(null);
-  const [selezionataSubtipo, setSelezionataSubtipo] = useState(null); // per logica
+  const [selezionataSubtipo, setSelezionataSubtipo] = useState(null);
   const [mostraFiltroLogica, setMostraFiltroLogica] = useState(false);
 
   const [indiceCorrente, setIndiceCorrente] = useState(0);
@@ -67,7 +72,8 @@ export default function QuizPage({ params }) {
         if (matData?.nome?.toLowerCase() === 'logica') {
           setMostraFiltroLogica(true);
         } else {
-          setDomande(mescolaArray(qData).slice(0, 30));
+          const rimescolate = mescolaArray(qData);
+          setDomande(limitePersonalizzato ? rimescolate.slice(0, limitePersonalizzato) : rimescolate);
         }
       }
       setCaricamento(false);
@@ -76,7 +82,7 @@ export default function QuizPage({ params }) {
     if (materiaId) {
       initQuiz();
     }
-  }, [materiaId, router]);
+  }, [materiaId, router, limitePersonalizzato]);
 
   const avviaQuizLogica = (subtipoId) => {
     let filtrate = [...tutteLeDomande];
@@ -84,7 +90,11 @@ export default function QuizPage({ params }) {
       filtrate = filtrate.filter((d) => d.sottotipologia === subtipoId);
     }
     setSelezionataSubtipo(subtipoId);
-    setDomande(mescolaArray(filtrate).slice(0, 30));
+    
+    const rimescolate = mescolaArray(filtrate);
+    // Se c'è un limite impostato dall'utente lo rispetta, altrimenti prende tutte le domande disponibili
+    setDomande(limitePersonalizzato ? rimescolate.slice(0, limitePersonalizzato) : rimescolate);
+
     setMostraFiltroLogica(false);
     setIndiceCorrente(0);
     setRisposteUtente({});
@@ -92,7 +102,6 @@ export default function QuizPage({ params }) {
 
   const domandaAttuale = domande[indiceCorrente];
 
-  // Gestione risposta e memorizzazione su errori_utente
   const selezionaRisposta = async (lettera) => {
     if (risposteUtente[indiceCorrente] !== undefined) return;
 
@@ -170,7 +179,6 @@ export default function QuizPage({ params }) {
     );
   }
 
-  // SCHERMATA DI SCELTA SOTTOTIPOLOGIA LOGICA
   if (mostraFiltroLogica) {
     return (
       <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 font-sans flex flex-col items-center justify-center">
@@ -193,26 +201,37 @@ export default function QuizPage({ params }) {
           </div>
 
           <div className="flex flex-col gap-3">
-            {OPZIONI_LOGICA.map((opz) => (
-              <button
-                key={opz.id}
-                onClick={() => avviaQuizLogica(opz.id)}
-                className="p-4 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/60 text-left transition-all flex items-center justify-between group cursor-pointer"
-              >
-                <div className="flex items-center gap-3.5">
-                  <span className="text-2xl">{opz.icona}</span>
-                  <div>
-                    <h3 className="text-xs font-black text-[#F8FAFC] group-hover:text-amber-400 transition-colors">
-                      {opz.titolo}
-                    </h3>
-                    <p className="text-[11px] text-[#94A3B8]">{opz.desc}</p>
+            {OPZIONI_LOGICA.map((opz) => {
+              const conteggio = opz.id === 'tutte' 
+                ? tutteLeDomande.length 
+                : tutteLeDomande.filter((d) => d.sottotipologia === opz.id).length;
+
+              return (
+                <button
+                  key={opz.id}
+                  onClick={() => avviaQuizLogica(opz.id)}
+                  className="p-4 rounded-2xl bg-[#23272D] border border-[#434B57] hover:border-amber-500/60 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <span className="text-2xl">{opz.icona}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-black text-[#F8FAFC] group-hover:text-amber-400 transition-colors">
+                          {opz.titolo}
+                        </h3>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#1C2025] text-amber-400 border border-[#434B57]">
+                          {conteggio} quesiti
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#94A3B8]">{opz.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <span className="text-amber-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                  Avvia →
-                </span>
-              </button>
-            ))}
+                  <span className="text-amber-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                    Avvia →
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </main>
