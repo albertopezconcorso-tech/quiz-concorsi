@@ -44,11 +44,12 @@ export default function AdminPage() {
   const [studenti, setStudenti] = useState([]);
   const [caricamentoStudenti, setCaricamentoStudenti] = useState(false);
 
-  // Archivio e Ricerca
+  // Archivio, Ricerca e Ordinamento Cronologico
   const [elencoDomande, setElencoDomande] = useState([]);
   const [materiaArchivioAttiva, setMateriaArchivioAttiva] = useState(null);
   const [sottotipoArchivioFiltro, setSottotipoArchivioFiltro] = useState('tutti');
   const [testoRicerca, setTestoRicerca] = useState('');
+  const [ordineRecenti, setOrdineRecenti] = useState(true); // true = più recenti prima (ID decrescente)
   const [caricamentoArchivio, setCaricamentoArchivio] = useState(false);
   const [conteggiMaterie, setConteggiMaterie] = useState({});
 
@@ -357,9 +358,9 @@ export default function AdminPage() {
     setCaricamentoFile(false);
   };
 
-  // FILTRO DI RICERCA LIVE IN ARCHIVIO
+  // FILTRO DI RICERCA LIVE E ORDINAMENTO TEMPORALE
   const domandeFiltrate = useMemo(() => {
-    return elencoDomande.filter((d) => {
+    const filtrate = elencoDomande.filter((d) => {
       if (isArchivioLogica && sottotipoArchivioFiltro !== 'tutti') {
         if (d.sottotipologia !== sottotipoArchivioFiltro) return false;
       }
@@ -374,7 +375,10 @@ export default function AdminPage() {
         d.spiegazione?.toLowerCase().includes(q)
       );
     });
-  }, [elencoDomande, isArchivioLogica, sottotipoArchivioFiltro, testoRicerca]);
+
+    // Se ordineRecenti è true mostra prima gli ID più alti (ultimi inseriti), altrimenti i più vecchi
+    return filtrate.sort((a, b) => (ordineRecenti ? b.id - a.id : a.id - b.id));
+  }, [elencoDomande, isArchivioLogica, sottotipoArchivioFiltro, testoRicerca, ordineRecenti]);
 
   const totaleComplessivo = Object.values(conteggiMaterie).reduce((acc, curr) => acc + curr, 0);
 
@@ -824,7 +828,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: ARCHIVIO SUDDIVISO PER MATERIA CON LENTE */}
+        {/* TAB 4: ARCHIVIO SUDDIVISO PER MATERIA CON LENTE E ORDINAMENTO */}
         {tabAttiva === 'archivio' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
             <div>
@@ -894,27 +898,42 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* RICERCA CON LENTE */}
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base text-[#94A3B8]">
-                🔍
-              </span>
-              <input
-                type="text"
-                value={testoRicerca}
-                onChange={(e) => setTestoRicerca(e.target.value)}
-                placeholder="Cerca testo, parola chiave o spiegazione..."
-                className="w-full pl-10 pr-4 py-3 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-colors"
-              />
-              {testoRicerca && (
-                <button
-                  type="button"
-                  onClick={() => setTestoRicerca('')}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC]"
-                >
-                  ✕ Svuota
-                </button>
-              )}
+            {/* BARRA RICERCA CON LENTE + PULSANTE ORDINAMENTO */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base text-[#94A3B8]">
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  value={testoRicerca}
+                  onChange={(e) => setTestoRicerca(e.target.value)}
+                  placeholder="Cerca testo, parola chiave o spiegazione..."
+                  className="w-full pl-10 pr-16 py-3 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-colors"
+                />
+                {testoRicerca && (
+                  <button
+                    type="button"
+                    onClick={() => setTestoRicerca('')}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC]"
+                  >
+                    ✕ Svuota
+                  </button>
+                )}
+              </div>
+
+              {/* PULSANTE COMMUTAZIONE ORDINAMENTO TEMPORALE */}
+              <button
+                type="button"
+                onClick={() => setOrdineRecenti((prev) => !prev)}
+                className="px-4 py-3 bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 rounded-2xl text-xs font-bold text-[#F8FAFC] transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+              >
+                <span className="text-amber-400 font-black text-sm">⇅</span>
+                <span className="text-[#94A3B8]">Ordine:</span>
+                <span className="text-amber-400 font-bold">
+                  {ordineRecenti ? 'Più recenti' : 'Più vecchie'}
+                </span>
+              </button>
             </div>
 
             {/* RISULTATI */}
@@ -930,8 +949,13 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
-                <div className="text-[11px] font-bold text-[#94A3B8] px-1">
-                  Visualizzati <span className="text-amber-400 font-extrabold">{domandeFiltrate.length}</span> quesiti
+                <div className="text-[11px] font-bold text-[#94A3B8] px-1 flex items-center justify-between">
+                  <span>
+                    Visualizzati <span className="text-amber-400 font-extrabold">{domandeFiltrate.length}</span> quesiti
+                  </span>
+                  <span className="text-[10px] text-[#94A3B8]">
+                    Ordinamento attivo: <strong className="text-amber-400/90">{ordineRecenti ? 'Dalle ultime inserite' : 'Dalle prime inserite'}</strong>
+                  </span>
                 </div>
 
                 {domandeFiltrate.map((d, index) => (
@@ -939,7 +963,7 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                          #{index + 1}
+                          #{index + 1} (ID #{d.id})
                         </span>
                         {d.sottotipologia && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#2E343D] text-[#94A3B8] border border-[#434B57]">
