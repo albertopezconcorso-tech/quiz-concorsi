@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 const TIPI_LOGICA = [
   'Logica figurale',
@@ -41,7 +42,7 @@ export default function AdminPage() {
   const [filtroMateriaArchivio, setFiltroMateriaArchivio] = useState('tutte');
   const [caricamentoArchivio, setCaricamentoArchivio] = useState(false);
 
-  // Notifiche e stati
+  // Notifiche e caricamento
   const [messaggio, setMessaggio] = useState({ testo: '', tipo: '' });
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [caricamentoFile, setCaricamentoFile] = useState(false);
@@ -86,7 +87,7 @@ export default function AdminPage() {
   const materiaOggetto = materie.find((m) => m.id.toString() === materiaSelezionata.toString());
   const isLogica = materiaOggetto?.nome?.toLowerCase() === 'logica';
 
-  // INSERIMENTO DOMANDA SINGOLA
+  // 1. INSERIMENTO DOMANDA SINGOLA
   const handleCreaDomanda = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -127,7 +128,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // CREA NUOVA MATERIA
+  // 2. CREAZIONE NUOVA MATERIA
   const handleCreaMateria = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -148,7 +149,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // REGISTRAZIONE NUOVO STUDENTE
+  // 3. REGISTRAZIONE UTENTE STUDENTE
   const handleCreaStudente = async (e) => {
     e.preventDefault();
     setSalvataggioInCorso(true);
@@ -169,7 +170,7 @@ export default function AdminPage() {
     setSalvataggioInCorso(false);
   };
 
-  // ELIMINA DOMANDA DALL'ARCHIVIO
+  // 4. ELIMINA DOMANDA
   const handleEliminaDomanda = async (domandaId) => {
     if (!confirm('Sei sicuro di voler eliminare definitivamente questo quesito?')) return;
     const { error } = await supabase.from('domande').delete().eq('id', domandaId);
@@ -178,92 +179,101 @@ export default function AdminPage() {
     }
   };
 
-  // IMPORTAZIONE CSV INTELLIGENTE (RICONOSCE MATERIA E ALLINEA LE COLONNE)
-  const handleCSVUpload = async (e) => {
+  // 5. IMPORTAZIONE NATIVA FILE EXCEL (.xlsx, .xls) E CSV
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setCaricamentoFile(true);
     setMessaggio({ testo: '', tipo: '' });
 
-    const reader = new FileReader();
-    reader.onload = async ({ target }) => {
-      try {
-        const text = target.result;
-        const lines = text.split(/\r\n|\n/).filter((l) => l.trim() !== '');
-        if (lines.length < 2) {
-          setMessaggio({ testo: 'File CSV non valido o privo di righe.', tipo: 'errore' });
-          setCaricamentoFile(false);
-          return;
-        }
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        const separatore = lines[0].includes(';') ? ';' : ',';
-        const headers = lines[0].split(separatore).map((h) => h.trim().toLowerCase().replace(/"/g, ''));
-        
-        // Verifica se la prima colonna è "materia"
-        const haColonnaMateria = headers[0].includes('materia');
-        const offset = haColonnaMateria ? 1 : 0;
-
-        const righe = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const riga = lines[i].split(separatore).map((val) => val.trim().replace(/^"|"$/g, ''));
-          if (riga.length < 5) continue;
-
-          const qMateriaNome = haColonnaMateria ? riga[0] : null;
-          const qTesto = riga[0 + offset];
-          const optA = riga[1 + offset];
-          const optB = riga[2 + offset];
-          const optC = riga[3 + offset] || '';
-          const optD = riga[4 + offset] || '';
-          const corr = (riga[5 + offset] || 'A').toUpperCase().trim();
-          const spieg = riga[6 + offset] || null;
-          const subTipo = riga[7 + offset] || (isLogica ? 'Logica numerica' : null);
-
-          // Assegna la materia esatta cercandola per nome
-          let targetMateriaId = materiaSelezionata;
-          if (qMateriaNome) {
-            const matTrovata = materie.find(
-              (m) => m.nome.toLowerCase() === qMateriaNome.toLowerCase()
-            );
-            if (matTrovata) targetMateriaId = matTrovata.id;
-          }
-
-          if (qTesto && optA && optB) {
-            righe.push({
-              materia_id: targetMateriaId,
-              testo: qTesto,
-              opzione_a: optA,
-              opzione_b: optB,
-              opzione_c: optC,
-              opzione_d: optD,
-              risposta_esatta: corr,
-              spiegazione: spieg,
-              sottotipologia: subTipo
-            });
-          }
-        }
-
-        if (righe.length === 0) {
-          setMessaggio({ testo: 'Nessun quesito valido estratto dal CSV.', tipo: 'errore' });
-          setCaricamentoFile(false);
-          return;
-        }
-
-        const { error } = await supabase.from('domande').insert(righe);
-        if (error) {
-          setMessaggio({ testo: `Errore importazione: ${error.message}`, tipo: 'errore' });
-        } else {
-          setMessaggio({ testo: `Importazione completata con successo: inserite ${righe.length} domande!`, tipo: 'successo' });
-          e.target.value = '';
-        }
-      } catch (err) {
-        setMessaggio({ testo: `Errore lettura: ${err.message}`, tipo: 'errore' });
+      if (jsonRows.length < 2) {
+        setMessaggio({ testo: 'Il file selezionato è vuoto o privo di righe valide.', tipo: 'errore' });
+        setCaricamentoFile(false);
+        return;
       }
-      setCaricamentoFile(false);
-    };
 
-    reader.readAsText(file);
+      // Riconoscimento intelligente delle colonne per intestazione
+      const headers = jsonRows[0].map((h) => String(h || '').trim().toLowerCase());
+
+      const colMateria = headers.findIndex((h) => h.includes('materia'));
+      const colTesto = headers.findIndex((h) => h.includes('testo') || h.includes('domanda'));
+      const colA = headers.findIndex((h) => h.includes('opzione a') || h === 'a' || h === 'opzione_a');
+      const colB = headers.findIndex((h) => h.includes('opzione b') || h === 'b' || h === 'opzione_b');
+      const colC = headers.findIndex((h) => h.includes('opzione c') || h === 'c' || h === 'opzione_c');
+      const colD = headers.findIndex((h) => h.includes('opzione d') || h === 'd' || h === 'opzione_d');
+      const colEsatta = headers.findIndex((h) => h.includes('esatta') || h.includes('risposta'));
+      const colSpieg = headers.findIndex((h) => h.includes('spiegazione') || h.includes('commento'));
+      const colSub = headers.findIndex((h) => h.includes('sottotipologia') || h.includes('tipologia'));
+
+      const righeDaInserire = [];
+
+      for (let i = 1; i < jsonRows.length; i++) {
+        const row = jsonRows[i];
+        if (!row || row.length === 0) continue;
+
+        const qTesto = colTesto !== -1 ? String(row[colTesto] || '').trim() : '';
+        const optA = colA !== -1 ? String(row[colA] || '').trim() : '';
+        const optB = colB !== -1 ? String(row[colB] || '').trim() : '';
+        const optC = colC !== -1 ? String(row[colC] || '').trim() : '';
+        const optD = colD !== -1 ? String(row[colD] || '').trim() : '';
+        const esatta = colEsatta !== -1 ? String(row[colEsatta] || 'A').trim().toUpperCase() : 'A';
+        const spieg = colSpieg !== -1 ? String(row[colSpieg] || '').trim() : null;
+        const nomeMat = colMateria !== -1 ? String(row[colMateria] || '').trim() : '';
+        let subTipo = colSub !== -1 ? String(row[colSub] || '').trim() : null;
+
+        if (!qTesto || !optA || !optB) continue;
+
+        let targetMateriaId = materiaSelezionata;
+        if (nomeMat) {
+          const matTrovata = materie.find((m) => m.nome.toLowerCase() === nomeMat.toLowerCase());
+          if (matTrovata) targetMateriaId = matTrovata.id;
+        }
+
+        const matObj = materie.find((m) => m.id.toString() === targetMateriaId.toString());
+        const isMateriaLogica = matObj?.nome?.toLowerCase() === 'logica';
+
+        if (isMateriaLogica && !subTipo) {
+          subTipo = sottotipologia || 'Logica numerica';
+        }
+
+        righeDaInserire.push({
+          materia_id: targetMateriaId,
+          testo: qTesto,
+          opzione_a: optA,
+          opzione_b: optB,
+          opzione_c: optC,
+          opzione_d: optD,
+          risposta_esatta: esatta,
+          spiegazione: spieg || null,
+          sottotipologia: isMateriaLogica ? subTipo : null
+        });
+      }
+
+      if (righeDaInserire.length === 0) {
+        setMessaggio({ testo: 'Nessun quesito valido riconosciuto nel file Excel.', tipo: 'errore' });
+        setCaricamentoFile(false);
+        return;
+      }
+
+      const { error } = await supabase.from('domande').insert(righeDaInserire);
+      if (error) {
+        setMessaggio({ testo: `Errore caricamento: ${error.message}`, tipo: 'errore' });
+      } else {
+        setMessaggio({ testo: `Importazione riuscita! Inserite ${righeDaInserire.length} domande direttamente da Excel.`, tipo: 'successo' });
+        e.target.value = '';
+      }
+    } catch (err) {
+      setMessaggio({ testo: `Errore lettura Excel: ${err.message}`, tipo: 'errore' });
+    }
+    setCaricamentoFile(false);
   };
 
   return (
@@ -340,7 +350,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* TAB 1: DOMANDE */}
+        {/* TAB DOMANDE */}
         {tabAttiva === 'domande' && (
           <div className="flex flex-col gap-6">
             <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
@@ -387,26 +397,32 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* CARICAMENTO CSV */}
+            {/* IMPORTAZIONE EXCEL DIRETTA */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-xl">📑</span>
+                <span className="text-xl">📊</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Rapida (CSV / Excel)</h2>
+                  <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Diretta Excel (.xlsx) o CSV</h2>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Supporta sia file con o senza colonna iniziale Materia.
+                    Supporta sia i file Excel originali (.xlsx) sia i CSV senza problemi di virgole.
                   </p>
                 </div>
               </div>
               <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#434B57] hover:border-amber-500/50 rounded-2xl cursor-pointer bg-[#23272D]/50 transition-all">
                 <span className="text-xs text-[#94A3B8] font-bold">
-                  {caricamentoFile ? 'Caricamento in corso...' : 'Clicca per caricare file .CSV'}
+                  {caricamentoFile ? 'Lettura e caricamento in corso...' : 'Clicca per caricare file .XLSX o .CSV'}
                 </span>
-                <input type="file" accept=".csv" disabled={caricamentoFile} onChange={handleCSVUpload} className="hidden" />
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  disabled={caricamentoFile}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </label>
             </div>
 
-            {/* FORM SINGOLO */}
+            {/* FORM MANUALE */}
             <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">✏️</span>
@@ -490,7 +506,7 @@ export default function AdminPage() {
                       type="text"
                       value={spiegazione}
                       onChange={(e) => setSpiegazione(e.target.value)}
-                      placeholder="Commento o trucco di risoluzione..."
+                      placeholder="Commento o metodo di risoluzione..."
                       className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -508,7 +524,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 2: MATERIE */}
+        {/* TAB MATERIE */}
         {tabAttiva === 'materie' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex items-center gap-3 mb-6">
@@ -573,14 +589,14 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: ACCOUNT */}
+        {/* TAB UTENTI */}
         {tabAttiva === 'utenti' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex items-center gap-3 mb-6">
               <span className="text-xl">👥</span>
               <div>
                 <h2 className="text-sm font-bold text-[#F8FAFC]">Registra Account per uno Studente</h2>
-                <p className="text-[11px] text-[#94A3B8]">Crea le credenziali d&apos;accesso per i corsisti</p>
+                <p className="text-[11px] text-[#94A3B8]">Crea credenziali di accesso per i corsisti</p>
               </div>
             </div>
 
@@ -620,7 +636,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: ARCHIVIO */}
+        {/* TAB ARCHIVIO */}
         {tabAttiva === 'archivio' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
