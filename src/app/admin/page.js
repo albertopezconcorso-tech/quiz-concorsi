@@ -88,16 +88,20 @@ export default function AdminPage() {
     }
   }
 
+  // Conteggio esatto nativo senza limite di 1000 righe
   async function aggiornaConteggi() {
-    const { data, error } = await supabase.from('domande').select('materia_id');
-    if (!error && data) {
-      const mappa = {};
-      data.forEach((d) => {
-        const id = d.materia_id ? d.materia_id.toString() : 'senza_materia';
-        mappa[id] = (mappa[id] || 0) + 1;
-      });
-      setConteggiMaterie(mappa);
+    const { data: materieDb } = await supabase.from('materie').select('id');
+    if (!materieDb) return;
+
+    const mappa = {};
+    for (const m of materieDb) {
+      const { count } = await supabase
+        .from('domande')
+        .select('*', { count: 'exact', head: true })
+        .eq('materia_id', m.id);
+      mappa[m.id] = count || 0;
     }
+    setConteggiMaterie(mappa);
   }
 
   useEffect(() => {
@@ -113,13 +117,15 @@ export default function AdminPage() {
     }
   }, [tabAttiva]);
 
+  // Carica fino a 10.000 record nell'archivio
   async function caricaDomandeMateria(matId) {
     setCaricamentoArchivio(true);
     const { data, error } = await supabase
       .from('domande')
       .select('*, materie(nome)')
       .eq('materia_id', matId)
-      .order('id', { ascending: false });
+      .order('id', { ascending: false })
+      .range(0, 9999);
 
     if (!error && data) setElencoDomande(data);
     setCaricamentoArchivio(false);
@@ -1150,7 +1156,7 @@ export default function AdminPage() {
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => {}} // gestito da onClick del container
+                            onChange={() => {}}
                             className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
                           />
                           <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
