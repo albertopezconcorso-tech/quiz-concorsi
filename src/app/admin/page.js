@@ -88,7 +88,7 @@ export default function AdminPage() {
     }
   }
 
-  // Conteggio esatto nativo senza limite di 1000 righe
+  // Conteggio nativo esatto senza scaricare l'intero payload
   async function aggiornaConteggi() {
     const { data: materieDb } = await supabase.from('materie').select('id');
     if (!materieDb) return;
@@ -117,17 +117,35 @@ export default function AdminPage() {
     }
   }, [tabAttiva]);
 
-  // Carica fino a 10.000 record nell'archivio
+  // Paginazione a ciclo per superare il tetto delle 1000 righe di PostgREST
   async function caricaDomandeMateria(matId) {
     setCaricamentoArchivio(true);
-    const { data, error } = await supabase
-      .from('domande')
-      .select('*, materie(nome)')
-      .eq('materia_id', matId)
-      .order('id', { ascending: false })
-      .range(0, 9999);
+    let tutteLeDomande = [];
+    let da = 0;
+    const passo = 1000;
+    let continua = true;
 
-    if (!error && data) setElencoDomande(data);
+    while (continua) {
+      const { data, error } = await supabase
+        .from('domande')
+        .select('*, materie(nome)')
+        .eq('materia_id', matId)
+        .order('id', { ascending: false })
+        .range(da, da + passo - 1);
+
+      if (error || !data || data.length === 0) {
+        continua = false;
+      } else {
+        tutteLeDomande = [...tutteLeDomande, ...data];
+        if (data.length < passo) {
+          continua = false;
+        } else {
+          da += passo;
+        }
+      }
+    }
+
+    setElencoDomande(tutteLeDomande);
     setCaricamentoArchivio(false);
   }
 
@@ -768,7 +786,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Diretta Excel (.xlsx) o CSV</h2>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al loro posto.
+                    Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al料loro posto.
                   </p>
                 </div>
               </div>
