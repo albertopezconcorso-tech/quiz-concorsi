@@ -56,6 +56,9 @@ export default function AdminPage() {
   const [caricamentoArchivio, setCaricamentoArchivio] = useState(false);
   const [conteggiMaterie, setConteggiMaterie] = useState({});
 
+  // Selezione Multipla Archivio
+  const [selezionati, setSelezionati] = useState([]);
+
   // Notifiche e stati di salvataggio
   const [messaggio, setMessaggio] = useState({ testo: '', tipo: '' });
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
@@ -99,6 +102,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tabAttiva === 'archivio' && materiaArchivioAttiva) {
+      setSelezionati([]);
       caricaDomandeMateria(materiaArchivioAttiva);
     }
   }, [tabAttiva, materiaArchivioAttiva]);
@@ -155,8 +159,8 @@ export default function AdminPage() {
       testo,
       opzione_a: opzioneA,
       opzione_b: opzioneB,
-      opzione_c: opzioneC,
-      opzione_d: opzioneD,
+      opzione_c: opzioneC || '-',
+      opzione_d: opzioneD || '-',
       risposta_esatta: rispostaEsatta,
       spiegazione: spiegazione || null,
       sottotipologia: isLogica ? sottotipologia : null
@@ -257,17 +261,44 @@ export default function AdminPage() {
     setMessaggio({ testo: `Account ${email} rimosso con successo.`, tipo: 'successo' });
   };
 
-  // 6. ELIMINA DOMANDA
+  // 6. ELIMINA DOMANDA SINGOLA
   const handleEliminaDomanda = async (domandaId) => {
     if (!confirm('Vuoi eliminare definitivamente questo quesito?')) return;
     const { error } = await supabase.from('domande').delete().eq('id', domandaId);
     if (!error) {
       setElencoDomande((prev) => prev.filter((d) => d.id !== domandaId));
+      setSelezionati((prev) => prev.filter((id) => id !== domandaId));
       await aggiornaConteggi();
     }
   };
 
-  // 7. IMPORTAZIONE FILE EXCEL (.XLSX) O CSV
+  // 7. ELIMINAZIONE MULTIPLA
+  const handleEliminaMultipli = async () => {
+    if (selezionati.length === 0) return;
+    if (!confirm(`Vuoi eliminare definitivamente i ${selezionati.length} quesiti selezionati?`)) return;
+
+    setSalvataggioInCorso(true);
+    const { error } = await supabase.from('domande').delete().in('id', selezionati);
+
+    if (error) {
+      setMessaggio({ testo: `Errore eliminazione multipla: ${error.message}`, tipo: 'errore' });
+    } else {
+      setElencoDomande((prev) => prev.filter((d) => !selezionati.includes(d.id)));
+      setMessaggio({ testo: `Eliminati con successo ${selezionati.length} quesiti.`, tipo: 'successo' });
+      setSelezionati([]);
+      await aggiornaConteggi();
+    }
+    setSalvataggioInCorso(false);
+  };
+
+  // Gestione selezioni
+  const toggleSelezioneSingola = (id) => {
+    setSelezionati((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // 8. IMPORTAZIONE FILE EXCEL (.XLSX) O CSV
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -335,8 +366,8 @@ export default function AdminPage() {
           testo: qTesto,
           opzione_a: optA,
           opzione_b: optB,
-          opzione_c: optC,
-          opzione_d: optD,
+          opzione_c: optC || '-',
+          opzione_d: optD || '-',
           risposta_esatta: esatta,
           spiegazione: spieg || null,
           sottotipologia: isMateriaLogica ? subTipo : null
@@ -364,7 +395,7 @@ export default function AdminPage() {
     setCaricamentoFile(false);
   };
 
-  // 8. PARSER TESTO INTELLIGENTE (SMART PASTE)
+  // 9. PARSER TESTO INTELLIGENTE (SMART PASTE)
   const analizzaTestoIncollato = (testoDaAnalizzare) => {
     if (!testoDaAnalizzare.trim()) {
       setAnteprimaDomande([]);
@@ -435,8 +466,8 @@ export default function AdminPage() {
           testo: qTesto,
           opzione_a: qA,
           opzione_b: qB,
-          opzione_c: qC || null,
-          opzione_d: qD || null,
+          opzione_c: qC || '-',
+          opzione_d: qD || '-',
           risposta_esatta: qEsatta,
           spiegazione: qSpiegazione || null,
           sottotipologia: isMatLogica ? (qTipologia || sottotipologia || 'Logica numerica') : null
@@ -490,6 +521,16 @@ export default function AdminPage() {
     return filtrate.sort((a, b) => (ordineRecenti ? b.id - a.id : a.id - b.id));
   }, [elencoDomande, isArchivioLogica, sottotipoArchivioFiltro, testoRicerca, ordineRecenti]);
 
+  const toggleSelezionaTuttiVisibili = () => {
+    const idsVisibili = domandeFiltrate.map((d) => d.id);
+    const tuttiSelezionati = idsVisibili.every((id) => selezionati.includes(id));
+    if (tuttiSelezionati) {
+      setSelezionati((prev) => prev.filter((id) => !idsVisibili.includes(id)));
+    } else {
+      setSelezionati((prev) => Array.from(new Set([...prev, ...idsVisibili])));
+    }
+  };
+
   const totaleComplessivo = Object.values(conteggiMaterie).reduce((acc, curr) => acc + curr, 0);
 
   if (!autorizzato) {
@@ -537,7 +578,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 5 TABS COMPLETE */}
+        {/* 5 TABS */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
           <button
             type="button"
@@ -596,7 +637,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* TAB 1: SMART PASTE (INCOLLA TESTO INTELLIGENTE) */}
+        {/* TAB 1: SMART PASTE */}
         {tabAttiva === 'smart-paste' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
             <div>
@@ -647,7 +688,7 @@ export default function AdminPage() {
                       </div>
                       <div className="font-bold text-[#F8FAFC] mb-1">{d.testo}</div>
                       <div className="text-[#94A3B8]">
-                        A: {d.opzione_a} | B: {d.opzione_b} | C: {d.opzione_c || '-'} | D: {d.opzione_d || '-'} | <strong className="text-emerald-400">Esatta: {d.risposta_esatta}</strong>
+                        A: {d.opzione_a} | B: {d.opzione_b} | C: {d.opzione_c} | D: {d.opzione_d} | <strong className="text-emerald-400">Esatta: {d.risposta_esatta}</strong>
                       </div>
                       {d.spiegazione && <div className="text-amber-200/80 text-[10px] mt-1">💡 {d.spiegazione}</div>}
                     </div>
@@ -927,7 +968,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: ARCHIVIO DOMANDE */}
+        {/* TAB 4: ARCHIVIO DOMANDE CON SELEZIONE ED ELIMINAZIONE MULTIPLA */}
         {tabAttiva === 'archivio' && (
           <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
             <div>
@@ -947,6 +988,7 @@ export default function AdminPage() {
                       onClick={() => {
                         setMateriaArchivioAttiva(m.id.toString());
                         setSottotipoArchivioFiltro('tutti');
+                        setSelezionati([]);
                       }}
                       className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
                         isActive
@@ -969,7 +1011,10 @@ export default function AdminPage() {
                 <span className="text-xs font-bold text-amber-400 mr-2">Sottotipologia:</span>
                 <button
                   type="button"
-                  onClick={() => setSottotipoArchivioFiltro('tutti')}
+                  onClick={() => {
+                    setSottotipoArchivioFiltro('tutti');
+                    setSelezionati([]);
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer border ${
                     sottotipoArchivioFiltro === 'tutti'
                       ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-black'
@@ -982,7 +1027,10 @@ export default function AdminPage() {
                   <button
                     key={tipo}
                     type="button"
-                    onClick={() => setSottotipoArchivioFiltro(tipo)}
+                    onClick={() => {
+                      setSottotipoArchivioFiltro(tipo);
+                      setSelezionati([]);
+                    }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer border ${
                       sottotipoArchivioFiltro === tipo
                         ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-black'
@@ -1031,6 +1079,39 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* BARRA AZIONI MULTIPLE */}
+            {domandeFiltrate.length > 0 && (
+              <div className="p-3.5 bg-[#1C2025] border border-[#434B57] rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleSelezionaTuttiVisibili}
+                    className="px-3 py-1.5 bg-[#2E343D] hover:bg-[#38404c] border border-[#434B57] rounded-xl text-xs font-bold text-amber-400 cursor-pointer transition-all flex items-center gap-1.5"
+                  >
+                    <span>☑️</span>
+                    {domandeFiltrate.every((d) => selezionati.includes(d.id))
+                      ? 'Deseleziona tutti i visibili'
+                      : 'Seleziona tutti i visibili'}
+                  </button>
+
+                  <span className="text-xs font-bold text-[#94A3B8]">
+                    Selezionati: <strong className="text-amber-400">{selezionati.length}</strong> su {domandeFiltrate.length}
+                  </span>
+                </div>
+
+                {selezionati.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleEliminaMultipli}
+                    disabled={salvataggioInCorso}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-900/30 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span>🗑️</span> Elimina i {selezionati.length} quesiti selezionati
+                  </button>
+                )}
+              </div>
+            )}
+
             {caricamentoArchivio ? (
               <div className="text-center py-10 text-xs font-bold text-amber-400">
                 Caricamento quesiti...
@@ -1052,53 +1133,74 @@ export default function AdminPage() {
                   </span>
                 </div>
 
-                {domandeFiltrate.map((d, index) => (
-                  <div key={d.id} className="p-4 bg-[#23272D] border border-[#434B57] rounded-2xl flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                          #{index + 1} (ID #{d.id})
-                        </span>
-                        {d.sottotipologia && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#2E343D] text-[#94A3B8] border border-[#434B57]">
-                            {d.sottotipologia}
+                {domandeFiltrate.map((d, index) => {
+                  const isChecked = selezionati.includes(d.id);
+                  return (
+                    <div
+                      key={d.id}
+                      onClick={() => toggleSelezioneSingola(d.id)}
+                      className={`p-4 rounded-2xl flex flex-col gap-2.5 transition-all cursor-pointer border ${
+                        isChecked
+                          ? 'bg-[#2E343D] border-amber-500/80 shadow-md shadow-amber-500/10'
+                          : 'bg-[#23272D] border-[#434B57] hover:border-[#5a6575]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}} // gestito da onClick del container
+                            className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
+                          />
+                          <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                            #{index + 1} (ID #{d.id})
                           </span>
-                        )}
+                          {d.sottotipologia && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#2E343D] text-[#94A3B8] border border-[#434B57]">
+                              {d.sottotipologia}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEliminaDomanda(d.id);
+                          }}
+                          className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 cursor-pointer"
+                        >
+                          Elimina ✕
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleEliminaDomanda(d.id)}
-                        className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 cursor-pointer"
-                      >
-                        Elimina ✕
-                      </button>
-                    </div>
 
-                    <p className="text-xs font-bold text-[#F8FAFC] leading-relaxed">{d.testo}</p>
+                      <p className="text-xs font-bold text-[#F8FAFC] leading-relaxed">{d.testo}</p>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#94A3B8] pt-2 border-t border-[#434B57]/40">
-                      <span className={d.risposta_esatta === 'A' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
-                        A: {d.opzione_a}
-                      </span>
-                      <span className={d.risposta_esatta === 'B' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
-                        B: {d.opzione_b}
-                      </span>
-                      <span className={d.risposta_esatta === 'C' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
-                        C: {d.opzione_c || '-'}
-                      </span>
-                      <span className={d.risposta_esatta === 'D' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
-                        D: {d.opzione_d || '-'}
-                      </span>
-                    </div>
-
-                    {d.spiegazione && (
-                      <div className="text-[11px] text-slate-400 bg-[#1C2025]/50 p-2.5 rounded-xl border border-[#434B57]/40">
-                        <strong className="text-amber-400/80">Spiegazione: </strong>
-                        {d.spiegazione}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#94A3B8] pt-2 border-t border-[#434B57]/40">
+                        <span className={d.risposta_esatta === 'A' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
+                          A: {d.opzione_a}
+                        </span>
+                        <span className={d.risposta_esatta === 'B' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
+                          B: {d.opzione_b}
+                        </span>
+                        <span className={d.risposta_esatta === 'C' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
+                          C: {d.opzione_c || '-'}
+                        </span>
+                        <span className={d.risposta_esatta === 'D' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
+                          D: {d.opzione_d || '-'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {d.spiegazione && (
+                        <div className="text-[11px] text-slate-400 bg-[#1C2025]/50 p-2.5 rounded-xl border border-[#434B57]/40">
+                          <strong className="text-amber-400/80">Spiegazione: </strong>
+                          {d.spiegazione}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
