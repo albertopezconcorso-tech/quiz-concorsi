@@ -61,18 +61,38 @@ export default function QuizPage({ params }) {
         .single();
       if (matData) setMateria(matData);
 
-      const { data: qData, error } = await supabase
-        .from('domande')
-        .select('*')
-        .eq('materia_id', materiaId);
+      // SCARICHIAMO TUTTI I QUESITI SUPERANDO IL LIMITE DI 1000 RIGHE DI SUPABASE
+      let allQuestions = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
 
-      if (!error && qData) {
-        setTutteLeDomande(qData);
+      while (hasMore) {
+        const { data: qChunk, error: qErr } = await supabase
+          .from('domande')
+          .select('*')
+          .eq('materia_id', materiaId)
+          .range(from, from + step - 1);
+
+        if (qErr || !qChunk || qChunk.length === 0) {
+          hasMore = false;
+        } else {
+          allQuestions = [...allQuestions, ...qChunk];
+          if (qChunk.length < step) {
+            hasMore = false;
+          } else {
+            from += step;
+          }
+        }
+      }
+
+      if (allQuestions.length > 0) {
+        setTutteLeDomande(allQuestions);
         // Se è Logica, mostriamo prima la selezione della branca
         if (matData?.nome?.toLowerCase() === 'logica') {
           setMostraFiltroLogica(true);
         } else {
-          const rimescolate = mescolaArray(qData);
+          const rimescolate = mescolaArray(allQuestions);
           setDomande(limitePersonalizzato ? rimescolate.slice(0, limitePersonalizzato) : rimescolate);
         }
       }
@@ -87,7 +107,9 @@ export default function QuizPage({ params }) {
   const avviaQuizLogica = (subtipoId) => {
     let filtrate = [...tutteLeDomande];
     if (subtipoId !== 'tutte') {
-      filtrate = filtrate.filter((d) => d.sottotipologia === subtipoId);
+      filtrate = filtrate.filter(
+        (d) => d.sottotipologia?.trim()?.toLowerCase() === subtipoId.trim().toLowerCase()
+      );
     }
     setSelezionataSubtipo(subtipoId);
     
@@ -204,7 +226,9 @@ export default function QuizPage({ params }) {
             {OPZIONI_LOGICA.map((opz) => {
               const conteggio = opz.id === 'tutte' 
                 ? tutteLeDomande.length 
-                : tutteLeDomande.filter((d) => d.sottotipologia === opz.id).length;
+                : tutteLeDomande.filter(
+                    (d) => d.sottotipologia?.trim()?.toLowerCase() === opz.id.trim().toLowerCase()
+                  ).length;
 
               return (
                 <button
