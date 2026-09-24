@@ -14,10 +14,21 @@ function mescolaArray(array) {
   return arr;
 }
 
+const SOTTOTIPI_LOGICA = [
+  { id: 'Logica figurale', titolo: 'Logica Figurale', icona: '🖼️' },
+  { id: 'Logica numerica', titolo: 'Logica Numerica', icona: '🔢' },
+  { id: 'Logica deduttiva e ragionamento', titolo: 'Logica Deduttiva e Ragionamento', icona: '🧠' }
+];
+
 export default function SimulazionePersonalizzataPage() {
   const router = useRouter();
   const [materie, setMaterie] = useState([]);
   const [config, setConfig] = useState({}); // { materiaId: numeroDomande }
+  const [configLogica, setConfigLogica] = useState({
+    'Logica figurale': 5,
+    'Logica numerica': 10,
+    'Logica deduttiva e ragionamento': 10
+  });
   const [stato, setStato] = useState('configurazione'); // 'configurazione' | 'quiz' | 'finito'
 
   const [domandeQuiz, setDomandeQuiz] = useState([]);
@@ -40,7 +51,7 @@ export default function SimulazionePersonalizzataPage() {
         setMaterie(matData);
         const defaultConfig = {};
         matData.forEach((m) => {
-          defaultConfig[m.id] = 10; // 10 domande predefinite per materia
+          defaultConfig[m.id] = 10;
         });
         setConfig(defaultConfig);
       }
@@ -49,37 +60,93 @@ export default function SimulazionePersonalizzataPage() {
     init();
   }, [router]);
 
-  const totaleSelezionato = Object.values(config).reduce((a, b) => a + Number(b || 0), 0);
+  // Calcolo totale domande configurate
+  const totaleMaterieStandard = materie
+    .filter((m) => m.nome.toLowerCase() !== 'logica')
+    .reduce((acc, m) => acc + Number(config[m.id] || 0), 0);
+
+  const materiaLogica = materie.find((m) => m.nome.toLowerCase() === 'logica');
+  const totaleLogica = materiaLogica 
+    ? Object.values(configLogica).reduce((a, b) => a + Number(b || 0), 0)
+    : 0;
+
+  const totaleSelezionato = totaleMaterieStandard + totaleLogica;
 
   const avviaSimulazione = async () => {
     if (totaleSelezionato === 0) {
-      alert('Seleziona almeno 1 domanda!');
+      alert('Seleziona almeno 1 domanda per avviare la simulazione!');
       return;
     }
 
     setAvvioInCorso(true);
     let poolTotale = [];
 
-    for (const materia of materie) {
-      const qta = Number(config[materia.id] || 0);
-      if (qta > 0) {
-        const { data: dData } = await supabase
+    // Helper per estrarre tutti i quesiti superando il limite di 1000 righe di Supabase
+    async function fetchTutteLeDomande(materiaId) {
+      let result = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
           .from('domande')
           .select('*')
-          .eq('materia_id', materia.id);
+          .eq('materia_id', materiaId)
+          .range(from, from + step - 1);
 
-        if (dData && dData.length > 0) {
-          const estratte = mescolaArray(dData).slice(0, qta).map((d) => ({
-            ...d,
-            materia_nome: materia.nome,
-          }));
-          poolTotale = poolTotale.concat(estratte);
+        if (error || !data || data.length === 0) {
+          hasMore = false;
+        } else {
+          result = [...result, ...data];
+          if (data.length < step) hasMore = false;
+          else from += step;
+        }
+      }
+      return result;
+    }
+
+    for (const materia of materie) {
+      const isLogica = materia.nome.toLowerCase() === 'logica';
+
+      if (isLogica) {
+        // Se la materia è Logica, gestiamo le sottocategorie
+        const qtaLogicaTot = Object.values(configLogica).reduce((a, b) => a + Number(b || 0), 0);
+        if (qtaLogicaTot > 0) {
+          const tutteLogica = await fetchTutteLeDomande(materia.id);
+
+          for (const sub of SOTTOTIPI_LOGICA) {
+            const qtaSub = Number(configLogica[sub.id] || 0);
+            if (qtaSub > 0) {
+              const filtrateSub = tutteLogica.filter(
+                (d) => d.sottotipologia?.trim()?.toLowerCase() === sub.id.trim().toLowerCase()
+              );
+              const estratte = mescolaArray(filtrateSub).slice(0, qtaSub).map((d) => ({
+                ...d,
+                materia_nome: `Logica • ${sub.titolo}`
+              }));
+              poolTotale = poolTotale.concat(estratte);
+            }
+          }
+        }
+      } else {
+        // Materie classiche (Diritto, Grammatica, Informatica, Storia, ecc.)
+        const qta = Number(config[materia.id] || 0);
+        if (qta > 0) {
+          const tutteMateria = await fetchTutteLeDomande(materia.id);
+          if (tutteMateria.length > 0) {
+            const estratte = mescolaArray(tutteMateria).slice(0, qta).map((d) => ({
+              ...d,
+              materia_nome: materia.nome,
+            }));
+            poolTotale = poolTotale.concat(estratte);
+          }
         }
       }
     }
 
     if (poolTotale.length === 0) {
-      alert('Non sono state trovate domande nel database per le materie selezionate.');
+      alert('Non sono state trovate domande nel database per la configurazione selezionata.');
       setAvvioInCorso(false);
       return;
     }
@@ -145,37 +212,87 @@ export default function SimulazionePersonalizzataPage() {
               </div>
               <div>
                 <h1 className="text-xl font-black text-[#F8FAFC]">Componi la tua Prova d&apos;Esame</h1>
-                <p className="text-xs text-[#94A3B8]">Scegli quante domande casuali estrarre per ciascuna materia</p>
+                <p className="text-xs text-[#94A3B8]">Scegli quante domande casuali estrarre per ciascuna materia e tipologia</p>
               </div>
             </div>
 
             <div className="my-6 flex flex-col gap-3">
-              {materie.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between p-4 bg-[#23272D] border border-[#434B57] rounded-2xl"
-                >
-                  <div>
-                    <span className="text-sm font-bold text-[#F8FAFC] block">{m.nome}</span>
-                    <span className="text-[11px] text-[#94A3B8]">Numero quesiti:</span>
-                  </div>
+              {materie.map((m) => {
+                const isLogica = m.nome.toLowerCase() === 'logica';
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={config[m.id] ?? 0}
-                      onChange={(e) => {
-                        const val = Math.max(0, parseInt(e.target.value) || 0);
-                        setConfig((prev) => ({ ...prev, [m.id]: val }));
-                      }}
-                      className="w-20 p-2 bg-[#2E343D] border border-[#434B57] rounded-xl text-center text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500"
-                    />
-                    <span className="text-xs text-[#94A3B8]">domande</span>
+                if (isLogica) {
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-4 bg-[#23272D] border border-amber-500/30 rounded-2xl flex flex-col gap-3"
+                    >
+                      <div className="flex items-center justify-between border-b border-[#434B57]/50 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🧩</span>
+                          <span className="text-sm font-black text-amber-400 uppercase tracking-wide">
+                            {m.nome} (Per Sottocategoria)
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-amber-300">
+                          {totaleLogica} domande tot.
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2.5 pt-1">
+                        {SOTTOTIPI_LOGICA.map((sub) => (
+                          <div key={sub.id} className="flex items-center justify-between pl-2">
+                            <div className="flex items-center gap-2">
+                              <span>{sub.icona}</span>
+                              <span className="text-xs font-bold text-[#F8FAFC]">{sub.titolo}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={configLogica[sub.id] ?? 0}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value) || 0);
+                                  setConfigLogica((prev) => ({ ...prev, [sub.id]: val }));
+                                }}
+                                className="w-16 p-1.5 bg-[#2E343D] border border-[#434B57] rounded-lg text-center text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                              />
+                              <span className="text-[11px] text-[#94A3B8]">domande</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between p-4 bg-[#23272D] border border-[#434B57] rounded-2xl"
+                  >
+                    <div>
+                      <span className="text-sm font-bold text-[#F8FAFC] block">{m.nome}</span>
+                      <span className="text-[11px] text-[#94A3B8]">Numero quesiti:</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config[m.id] ?? 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          setConfig((prev) => ({ ...prev, [m.id]: val }));
+                        }}
+                        className="w-20 p-2 bg-[#2E343D] border border-[#434B57] rounded-xl text-center text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                      />
+                      <span className="text-xs text-[#94A3B8]">domande</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="p-4 bg-[#3B332B] border border-[#855325] rounded-2xl flex items-center justify-between mb-6">
@@ -205,7 +322,7 @@ export default function SimulazionePersonalizzataPage() {
       else if (risposteUtente[idx] !== undefined) errate++;
     });
     const nonRisposte = domandeQuiz.length - (corrette + errate);
-    const percentuale = Math.round((corrette / domandeQuiz.length) * 100);
+    const percentuale = Math.round((corrette / (domandeQuiz.length || 1)) * 100);
 
     return (
       <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
@@ -214,7 +331,7 @@ export default function SimulazionePersonalizzataPage() {
             🎯
           </div>
           <h1 className="text-2xl font-black text-[#F8FAFC] mb-1">Simulazione Personalizzata Terminata!</h1>
-          <p className="text-xs text-[#94A3B8] mb-6">Test combinato multiteria</p>
+          <p className="text-xs text-[#94A3B8] mb-6">Test combinato multimateria</p>
 
           <div className="p-5 bg-[#23272D] rounded-2xl border border-[#434B57] mb-6">
             <div className="text-4xl font-black text-amber-400 mb-1">{percentuale}%</div>
@@ -259,13 +376,13 @@ export default function SimulazionePersonalizzataPage() {
   const domandaAttuale = domandeQuiz[indiceCorrente];
   const rispostaData = risposteUtente[indiceCorrente];
   const opzioni = [
-    { lettera: 'A', testo: domandaAttuale.opzione_a },
-    { lettera: 'B', testo: domandaAttuale.opzione_b },
-    { lettera: 'C', testo: domandaAttuale.opzione_c },
-    { lettera: 'D', testo: domandaAttuale.opzione_d },
+    { lettera: 'A', testo: domandaAttuale?.opzione_a },
+    { lettera: 'B', testo: domandaAttuale?.opzione_b },
+    { lettera: 'C', testo: domandaAttuale?.opzione_c },
+    { lettera: 'D', testo: domandaAttuale?.opzione_d },
   ].filter((o) => o.testo);
 
-  const progressoPercent = Math.round(((indiceCorrente + 1) / domandeQuiz.length) * 100);
+  const progressoPercent = Math.round(((indiceCorrente + 1) / (domandeQuiz.length || 1)) * 100);
 
   return (
     <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-4 lg:p-8 font-sans flex flex-col items-center">
@@ -282,7 +399,7 @@ export default function SimulazionePersonalizzataPage() {
             ← Annulla
           </button>
           <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-            {domandaAttuale.materia_nome || 'Simulazione'}
+            {domandaAttuale?.materia_nome || 'Simulazione'}
           </span>
           <span className="text-xs font-bold text-[#94A3B8] bg-[#23272D] px-2.5 py-1 rounded-lg border border-[#434B57]">
             {indiceCorrente + 1} / {domandeQuiz.length}
@@ -299,18 +416,18 @@ export default function SimulazionePersonalizzataPage() {
         <div className="bg-[#2E343D] p-6 lg:p-8 rounded-3xl border border-[#434B57] shadow-xl">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#23272D] text-amber-400 border border-amber-500/30">
-              Quesito #{indiceCorrente + 1} • {domandaAttuale.materia_nome}
+              Quesito #{indiceCorrente + 1} • {domandaAttuale?.materia_nome}
             </span>
           </div>
 
           <p className="text-base lg:text-lg font-bold text-[#F8FAFC] leading-relaxed mb-8">
-            {domandaAttuale.testo}
+            {domandaAttuale?.testo}
           </p>
 
           <div className="flex flex-col gap-3 mb-6">
             {opzioni.map((opt) => {
               const isSelezionata = rispostaData === opt.lettera;
-              const isCorretta = opt.lettera === domandaAttuale.risposta_esatta;
+              const isCorretta = opt.lettera === domandaAttuale?.risposta_esatta;
               const giaRisposto = rispostaData !== undefined;
 
               let stileScatola = 'bg-[#23272D] border-[#434B57] hover:border-amber-500/60 text-[#F8FAFC]';
@@ -353,7 +470,7 @@ export default function SimulazionePersonalizzataPage() {
             })}
           </div>
 
-          {domandaAttuale.spiegazione && rispostaData !== undefined && (
+          {domandaAttuale?.spiegazione && rispostaData !== undefined && (
             <div className="mb-6 pt-2">
               <button
                 onClick={() => setMostraSpiegazione(!mostraSpiegazione)}
