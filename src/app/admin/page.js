@@ -419,14 +419,21 @@ export default function AdminPage() {
     setCaricamentoFile(false);
   };
 
-  // 9. PARSER TESTO INTELLIGENTE (SMART PASTE)
-  const analizzaTestoIncollato = (testoDaAnalizzare) => {
-    if (!testoDaAnalizzare.trim()) {
+  // 9. PARSER TESTO INTELLIGENTE (USA MATERIA E TIPOLOGIA SELEZIONATE A SCHERMO)
+  const analizzaTestoIncollato = (testoDaAnalizzare, matIdOverride, subTipoOverride) => {
+    const testoInput = testoDaAnalizzare !== undefined ? testoDaAnalizzare : testoGrezzo;
+    const targetMatId = matIdOverride !== undefined ? matIdOverride : materiaSelezionata;
+    const targetSubTipo = subTipoOverride !== undefined ? subTipoOverride : sottotipologia;
+
+    if (!testoInput.trim()) {
       setAnteprimaDomande([]);
       return;
     }
 
-    const blocchi = testoDaAnalizzare.split(/\n\s*\n+/);
+    const currentMatObj = materie.find((m) => m.id.toString() === targetMatId.toString());
+    const isCurrentLogica = currentMatObj?.nome?.toLowerCase() === 'logica';
+
+    const blocchi = testoInput.split(/\n\s*\n+/);
     const domandeEstratte = [];
 
     for (const blocco of blocchi) {
@@ -471,9 +478,10 @@ export default function AdminPage() {
       }
 
       if (qTesto && qA && qB) {
-        let finalMateriaId = materiaSelezionata;
-        let finalMateriaNome = materiaOggetto?.nome || 'Materia';
+        let finalMateriaId = targetMatId;
+        let finalMateriaNome = currentMatObj?.nome || 'Materia';
 
+        // Se nel testo è presente esplicitamente una MATERIA diversa, diamole priorità
         if (qMateriaNome) {
           const matTrovata = materie.find((m) => m.nome.toLowerCase() === qMateriaNome.toLowerCase());
           if (matTrovata) {
@@ -482,7 +490,7 @@ export default function AdminPage() {
           }
         }
 
-        const isMatLogica = finalMateriaNome.toLowerCase() === 'logica';
+        const isFinalLogica = finalMateriaNome.toLowerCase() === 'logica';
 
         domandeEstratte.push({
           materia_id: finalMateriaId,
@@ -494,7 +502,7 @@ export default function AdminPage() {
           opzione_d: qD || '-',
           risposta_esatta: qEsatta,
           spiegazione: qSpiegazione || null,
-          sottotipologia: isMatLogica ? (qTipologia || sottotipologia || 'Logica numerica') : null
+          sottotipologia: isFinalLogica ? (qTipologia || targetSubTipo || 'Logica numerica') : null
         });
       }
     }
@@ -661,74 +669,129 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* TAB 1: SMART PASTE */}
+        {/* TAB 1: SMART PASTE (CON SELEZIONE DIRETTA MATERIA E TIPOLOGIA) */}
         {tabAttiva === 'smart-paste' && (
-          <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl">📋</span>
-                <h2 className="text-base font-bold text-[#F8FAFC]">Incolla Testo Multiplo con Smistamento Automatico</h2>
-              </div>
-              <p className="text-xs text-[#94A3B8]">
-                Incolla il testo specificando <strong className="text-amber-400">MATERIA:</strong> e <strong className="text-amber-400">TIPOLOGIA:</strong>. Il sistema catalogherà ciascuna domanda nella materia corrispondente.
-              </p>
+          <div className="flex flex-col gap-6">
+            {/* SELEZIONE MATERIA E SOTTOTIPOLOGIA PER IL BLOCCO INCOLLATO */}
+            <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
+              <label className="block text-xs font-black uppercase text-[#94A3B8] tracking-wider mb-2">
+                1. Seleziona Materia per il Testo da Incollare:
+              </label>
+              <select
+                value={materiaSelezionata}
+                onChange={(e) => {
+                  const newMatId = e.target.value;
+                  setMateriaSelezionata(newMatId);
+                  setSottotipologia('');
+                  analizzaTestoIncollato(testoGrezzo, newMatId, '');
+                }}
+                className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                {materie.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} ({conteggiMaterie[m.id] || 0} quesiti presenti)
+                  </option>
+                ))}
+              </select>
+
+              {isLogica && (
+                <div className="mt-4 pt-4 border-t border-[#434B57]">
+                  <label className="block text-xs font-black uppercase text-amber-400 tracking-wider mb-2">
+                    ⚡ Seleziona Tipologia di Logica:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {TIPI_LOGICA.map((tipo) => (
+                      <button
+                        type="button"
+                        key={tipo}
+                        onClick={() => {
+                          setSottotipologia(tipo);
+                          analizzaTestoIncollato(testoGrezzo, materiaSelezionata, tipo);
+                        }}
+                        className={`p-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
+                          sottotipologia === tipo
+                            ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-extrabold shadow-md shadow-amber-500/20'
+                            : 'bg-[#23272D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                        }`}
+                      >
+                        {tipo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <textarea
-              rows={12}
-              value={testoGrezzo}
-              onChange={(e) => {
-                setTestoGrezzo(e.target.value);
-                analizzaTestoIncollato(e.target.value);
-              }}
-              placeholder={`Esempio formato riconosciuto:\n\nMATERIA: Logica\nTIPOLOGIA: Logica numerica\nDOMANDA: Completare la serie: 10 - 20 - ? - 80\nA: 40\nB: 60\nC: 30\nD: 50\nESATTA: A\nSPIEGAZIONE: Moltiplicazione per 2\n\nMATERIA: Diritto Amministrativo\nDOMANDA: Il Consiglio di Stato è organo giurisdizionale di grado:\nA: Primo grado\nB: Secondo grado\nC: Unico grado\nD: Straordinario\nESATTA: B\nSPIEGAZIONE: Art. 100 Costituzione`}
-              className="w-full p-4 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs font-mono text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-all leading-relaxed"
-            />
-
-            {anteprimaDomande.length > 0 && (
-              <div className="p-4 bg-[#1C2025] border border-amber-500/30 rounded-2xl">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-amber-400">
-                    ✓ Quesiti riconosciuti: <strong>{anteprimaDomande.length}</strong>
-                  </span>
-                  <span className="text-[11px] text-[#94A3B8]">
-                    Controllo completato • Pronti per il salvataggio
-                  </span>
+            {/* CASELLA TESTO */}
+            <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">📋</span>
+                  <h2 className="text-base font-bold text-[#F8FAFC]">Incolla Testo Semplificato</h2>
                 </div>
-
-                <div className="max-h-64 overflow-y-auto flex flex-col gap-2.5 pr-1">
-                  {anteprimaDomande.map((d, idx) => (
-                    <div key={idx} className="p-3.5 bg-[#23272D] rounded-xl border border-[#434B57] text-[11px]">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-black text-amber-400">#{idx + 1}</span>
-                        <span className="px-2 py-0.5 rounded bg-[#2E343D] text-[#F8FAFC] font-bold border border-[#434B57]">
-                          📚 {d.materia_nome}
-                        </span>
-                        {d.sottotipologia && (
-                          <span className="px-2 py-0.5 rounded bg-[#1C2025] text-amber-300 font-semibold border border-amber-500/20">
-                            🏷️ {d.sottotipologia}
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-bold text-[#F8FAFC] mb-1">{d.testo}</div>
-                      <div className="text-[#94A3B8]">
-                        A: {d.opzione_a} | B: {d.opzione_b} | C: {d.opzione_c} | D: {d.opzione_d} | <strong className="text-emerald-400">Esatta: {d.risposta_esatta}</strong>
-                      </div>
-                      {d.spiegazione && <div className="text-amber-200/80 text-[10px] mt-1">💡 {d.spiegazione}</div>}
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSalvaTestoIncollato}
-                  disabled={salvataggioInCorso}
-                  className="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
-                >
-                  {salvataggioInCorso ? 'Salvataggio in corso...' : `Salva Tutti i ${anteprimaDomande.length} Quesiti nel Database 🚀`}
-                </button>
+                <p className="text-xs text-[#94A3B8]">
+                  Non serve indicare MATERIA o TIPOLOGIA nel testo. Verrà assegnata la materia selezionata sopra:{' '}
+                  <strong className="text-amber-400">{materiaOggetto?.nome}</strong>
+                  {isLogica && sottotipologia ? ` (${sottotipologia})` : ''}.
+                </p>
               </div>
-            )}
+
+              <textarea
+                rows={12}
+                value={testoGrezzo}
+                onChange={(e) => {
+                  setTestoGrezzo(e.target.value);
+                  analizzaTestoIncollato(e.target.value, materiaSelezionata, sottotipologia);
+                }}
+                placeholder={`Formato testo semplificato:\n\nDOMANDA: Completare la serie: 10 - 20 - ? - 80\nA: 40\nB: 60\nC: 30\nD: 50\nESATTA: A\nSPIEGAZIONE: Moltiplicazione per 2\n\nDOMANDA: Completare la serie: 1 - 3 - 6 - ? - 36\nA: 18\nB: 7\nC: 9\nD: 12\nESATTA: A\nSPIEGAZIONE: Alternanza x3 e x2`}
+                className="w-full p-4 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs font-mono text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-all leading-relaxed"
+              />
+
+              {anteprimaDomande.length > 0 && (
+                <div className="p-4 bg-[#1C2025] border border-amber-500/30 rounded-2xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-amber-400">
+                      ✓ Quesiti riconosciuti: <strong>{anteprimaDomande.length}</strong>
+                    </span>
+                    <span className="text-[11px] text-[#94A3B8]">
+                      Destinazione: <strong className="text-[#F8FAFC]">{materiaOggetto?.nome}</strong>
+                    </span>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto flex flex-col gap-2.5 pr-1">
+                    {anteprimaDomande.map((d, idx) => (
+                      <div key={idx} className="p-3.5 bg-[#23272D] rounded-xl border border-[#434B57] text-[11px]">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-black text-amber-400">#{idx + 1}</span>
+                          <span className="px-2 py-0.5 rounded bg-[#2E343D] text-[#F8FAFC] font-bold border border-[#434B57]">
+                            📚 {d.materia_nome}
+                          </span>
+                          {d.sottotipologia && (
+                            <span className="px-2 py-0.5 rounded bg-[#1C2025] text-amber-300 font-semibold border border-amber-500/20">
+                              🏷️ {d.sottotipologia}
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-bold text-[#F8FAFC] mb-1">{d.testo}</div>
+                        <div className="text-[#94A3B8]">
+                          A: {d.opzione_a} | B: {d.opzione_b} | C: {d.opzione_c} | D: {d.opzione_d} | <strong className="text-emerald-400">Esatta: {d.risposta_esatta}</strong>
+                        </div>
+                        {d.spiegazione && <div className="text-amber-200/80 text-[10px] mt-1">💡 {d.spiegazione}</div>}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSalvaTestoIncollato}
+                    disabled={salvataggioInCorso}
+                    className="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  >
+                    {salvataggioInCorso ? 'Salvataggio in corso...' : `Salva Tutti i ${anteprimaDomande.length} Quesiti in "${materiaOggetto?.nome}" 🚀`}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -786,7 +849,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Diretta Excel (.xlsx) o CSV</h2>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al料loro posto.
+                    Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al loro posto.
                   </p>
                 </div>
               </div>
