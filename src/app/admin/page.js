@@ -567,30 +567,30 @@ export default function AdminPage() {
 
   if (!autorizzato) {
     return (
-      <div className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-400 font-bold text-sm">
+      <div className="min-h-screen bg-[#0B1220] flex items-center justify-center text-amber-500 font-bold text-sm">
         Verifica credenziali Amministratore in corso... 🔒
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-[#0B1220] text-[#E8ECF8] p-6 lg:p-10 font-sans flex flex-col items-center">
       <div className="w-full max-w-5xl">
         {/* HEADER CON TASTO LOGOUT */}
-        <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl mb-6 shadow-sm">
-          <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1.5 transition-colors">
+        <div className="flex items-center justify-between bg-[#121A2E] border border-[#25304A] p-4 rounded-2xl mb-6">
+          <Link href="/" className="text-xs font-bold text-[#8E9BBA] hover:text-amber-500 flex items-center gap-1.5 transition-colors">
             <span>←</span> Torna alla Dashboard
           </Link>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-[#94A3B8] hidden sm:inline">
-              Quesiti DB: <strong className="text-amber-400">{totaleComplessivo}</strong>
+            <span className="text-xs font-bold text-[#8E9BBA] hidden sm:inline">
+              Quesiti DB: <strong className="text-amber-500">{totaleComplessivo}</strong>
             </span>
 
             <button
               type="button"
               onClick={handleLogoutAdmin}
-              className="text-xs font-black text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+              className="text-xs font-extrabold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
             >
               <span>🚪</span> Esci dall&apos;Admin
             </button>
@@ -615,10 +615,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setTabAttiva('smart-paste')}
-            className={`p-3 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`p-3 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tabAttiva === 'smart-paste'
-                ? 'bg-amber-500 text-[#1C2025] border-amber-400 shadow-lg shadow-amber-500/20'
-                : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-amber-500 text-[#1A1203] border-amber-400'
+                : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
             }`}
           >
             <span>📋</span> Incolla Testo
@@ -626,10 +626,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setTabAttiva('domande')}
-            className={`p-3 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`p-3 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tabAttiva === 'domande'
-                ? 'bg-amber-500 text-[#1C2025] border-amber-400 shadow-lg shadow-amber-500/20'
-                : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-amber-500 text-[#1A1203] border-amber-400'
+                : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
             }`}
           >
             <span>✏️</span> Inserisci / Excel
@@ -637,10 +637,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setTabAttiva('materie')}
-            className={`p-3 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`p-3 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tabAttiva === 'materie'
-                ? 'bg-amber-500 text-[#1C2025] border-amber-400 shadow-lg shadow-amber-500/20'
-                : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-amber-500 text-[#1A1203] border-amber-400'
+                : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
             }`}
           >
             <span>📚</span> Materie
@@ -648,10 +648,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setTabAttiva('archivio')}
-            className={`p-3 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`p-3 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tabAttiva === 'archivio'
-                ? 'bg-amber-500 text-[#1C2025] border-amber-400 shadow-lg shadow-amber-500/20'
-                : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-amber-500 text-[#1A1203] border-amber-400'
+                : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
             }`}
           >
             <span>🗂️</span> Archivio
@@ -659,10 +659,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setTabAttiva('utenti')}
-            className={`p-3 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 col-span-2 sm:col-span-1 ${
+            className={`p-3 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2 col-span-2 sm:col-span-1 ${
               tabAttiva === 'utenti'
-                ? 'bg-amber-500 text-[#1C2025] border-amber-400 shadow-lg shadow-amber-500/20'
-                : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-amber-500 text-[#1A1203] border-amber-400'
+                : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
             }`}
           >
             <span>👥</span> Corsisti
@@ -673,8 +673,8 @@ export default function AdminPage() {
         {tabAttiva === 'smart-paste' && (
           <div className="flex flex-col gap-6">
             {/* SELEZIONE MATERIA E SOTTOTIPOLOGIA PER IL BLOCCO INCOLLATO */}
-            <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
-              <label className="block text-xs font-black uppercase text-[#94A3B8] tracking-wider mb-2">
+            <div className="bg-[#121A2E] border border-[#25304A] p-6 rounded-2xl">
+              <label className="block text-xs font-extrabold uppercase text-[#8E9BBA] tracking-wider mb-2">
                 1. Seleziona Materia per il Testo da Incollare:
               </label>
               <select
@@ -685,7 +685,7 @@ export default function AdminPage() {
                   setSottotipologia('');
                   analizzaTestoIncollato(testoGrezzo, newMatId, '');
                 }}
-                className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
+                className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-sm font-bold text-amber-500 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -695,8 +695,8 @@ export default function AdminPage() {
               </select>
 
               {isLogica && (
-                <div className="mt-4 pt-4 border-t border-[#434B57]">
-                  <label className="block text-xs font-black uppercase text-amber-400 tracking-wider mb-2">
+                <div className="mt-4 pt-4 border-t border-[#25304A]">
+                  <label className="block text-xs font-extrabold uppercase text-amber-500 tracking-wider mb-2">
                     ⚡ Seleziona Tipologia di Logica:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -710,8 +710,8 @@ export default function AdminPage() {
                         }}
                         className={`p-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
                           sottotipologia === tipo
-                            ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-extrabold shadow-md shadow-amber-500/20'
-                            : 'bg-[#23272D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                            ? 'bg-amber-500 text-[#1A1203] border-amber-400 font-extrabold'
+                            : 'bg-[#0D1326] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
                         }`}
                       >
                         {tipo}
@@ -723,15 +723,15 @@ export default function AdminPage() {
             </div>
 
             {/* CASELLA TESTO */}
-            <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
+            <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-8 rounded-2xl flex flex-col gap-6">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">📋</span>
-                  <h2 className="text-base font-bold text-[#F8FAFC]">Incolla Testo Semplificato</h2>
+                  <h2 className="text-base font-bold text-[#E8ECF8]">Incolla Testo Semplificato</h2>
                 </div>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-[#8E9BBA]">
                   Non serve indicare MATERIA o TIPOLOGIA nel testo. Verrà assegnata la materia selezionata sopra:{' '}
-                  <strong className="text-amber-400">{materiaOggetto?.nome}</strong>
+                  <strong className="text-amber-500">{materiaOggetto?.nome}</strong>
                   {isLogica && sottotipologia ? ` (${sottotipologia})` : ''}.
                 </p>
               </div>
@@ -744,39 +744,39 @@ export default function AdminPage() {
                   analizzaTestoIncollato(e.target.value, materiaSelezionata, sottotipologia);
                 }}
                 placeholder={`Formato testo semplificato:\n\nDOMANDA: Completare la serie: 10 - 20 - ? - 80\nA: 40\nB: 60\nC: 30\nD: 50\nESATTA: A\nSPIEGAZIONE: Moltiplicazione per 2\n\nDOMANDA: Completare la serie: 1 - 3 - 6 - ? - 36\nA: 18\nB: 7\nC: 9\nD: 12\nESATTA: A\nSPIEGAZIONE: Alternanza x3 e x2`}
-                className="w-full p-4 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs font-mono text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-all leading-relaxed"
+                className="w-full p-4 bg-[#0D1326] border border-[#25304A] rounded-2xl text-xs font-mono text-[#E8ECF8] focus:outline-none focus:border-amber-500 transition-all leading-relaxed"
               />
 
               {anteprimaDomande.length > 0 && (
-                <div className="p-4 bg-[#1C2025] border border-amber-500/30 rounded-2xl">
+                <div className="p-4 bg-[#0D1326] border border-amber-500/30 rounded-2xl">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-amber-400">
+                    <span className="text-xs font-bold text-amber-500">
                       ✓ Quesiti riconosciuti: <strong>{anteprimaDomande.length}</strong>
                     </span>
-                    <span className="text-[11px] text-[#94A3B8]">
-                      Destinazione: <strong className="text-[#F8FAFC]">{materiaOggetto?.nome}</strong>
+                    <span className="text-[11px] text-[#8E9BBA]">
+                      Destinazione: <strong className="text-[#E8ECF8]">{materiaOggetto?.nome}</strong>
                     </span>
                   </div>
 
                   <div className="max-h-64 overflow-y-auto flex flex-col gap-2.5 pr-1">
                     {anteprimaDomande.map((d, idx) => (
-                      <div key={idx} className="p-3.5 bg-[#23272D] rounded-xl border border-[#434B57] text-[11px]">
+                      <div key={idx} className="p-3.5 bg-[#0D1326] rounded-xl border border-[#25304A] text-[11px]">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-black text-amber-400">#{idx + 1}</span>
-                          <span className="px-2 py-0.5 rounded bg-[#2E343D] text-[#F8FAFC] font-bold border border-[#434B57]">
+                          <span className="font-extrabold text-amber-500">#{idx + 1}</span>
+                          <span className="px-2 py-0.5 rounded bg-[#121A2E] text-[#E8ECF8] font-bold border border-[#25304A]">
                             📚 {d.materia_nome}
                           </span>
                           {d.sottotipologia && (
-                            <span className="px-2 py-0.5 rounded bg-[#1C2025] text-amber-300 font-semibold border border-amber-500/20">
+                            <span className="px-2 py-0.5 rounded bg-[#0D1326] text-amber-400 font-semibold border border-amber-500/20">
                               🏷️ {d.sottotipologia}
                             </span>
                           )}
                         </div>
-                        <div className="font-bold text-[#F8FAFC] mb-1">{d.testo}</div>
-                        <div className="text-[#94A3B8]">
+                        <div className="font-bold text-[#E8ECF8] mb-1">{d.testo}</div>
+                        <div className="text-[#8E9BBA]">
                           A: {d.opzione_a} | B: {d.opzione_b} | C: {d.opzione_c} | D: {d.opzione_d} | <strong className="text-emerald-400">Esatta: {d.risposta_esatta}</strong>
                         </div>
-                        {d.spiegazione && <div className="text-amber-200/80 text-[10px] mt-1">💡 {d.spiegazione}</div>}
+                        {d.spiegazione && <div className="text-amber-100/80 text-[10px] mt-1">💡 {d.spiegazione}</div>}
                       </div>
                     ))}
                   </div>
@@ -785,7 +785,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={handleSalvaTestoIncollato}
                     disabled={salvataggioInCorso}
-                    className="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                    className="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-extrabold py-3.5 rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
                   >
                     {salvataggioInCorso ? 'Salvataggio in corso...' : `Salva Tutti i ${anteprimaDomande.length} Quesiti in "${materiaOggetto?.nome}" 🚀`}
                   </button>
@@ -798,8 +798,8 @@ export default function AdminPage() {
         {/* TAB 2: INSERIMENTO SINGOLO & IMPORT EXCEL */}
         {tabAttiva === 'domande' && (
           <div className="flex flex-col gap-6">
-            <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
-              <label className="block text-xs font-black uppercase text-[#94A3B8] tracking-wider mb-2">
+            <div className="bg-[#121A2E] border border-[#25304A] p-6 rounded-2xl">
+              <label className="block text-xs font-extrabold uppercase text-[#8E9BBA] tracking-wider mb-2">
                 1. Materia di Destinazione
               </label>
               <select
@@ -808,7 +808,7 @@ export default function AdminPage() {
                   setMateriaSelezionata(e.target.value);
                   setSottotipologia('');
                 }}
-                className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
+                className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-sm font-bold text-amber-500 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 {materie.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -818,8 +818,8 @@ export default function AdminPage() {
               </select>
 
               {isLogica && (
-                <div className="mt-4 pt-4 border-t border-[#434B57]">
-                  <label className="block text-xs font-black uppercase text-amber-400 tracking-wider mb-2">
+                <div className="mt-4 pt-4 border-t border-[#25304A]">
+                  <label className="block text-xs font-extrabold uppercase text-amber-500 tracking-wider mb-2">
                     ⚡ Tipologia Specifica di Logica:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -830,8 +830,8 @@ export default function AdminPage() {
                         onClick={() => setSottotipologia(tipo)}
                         className={`p-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
                           sottotipologia === tipo
-                            ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-extrabold shadow-md shadow-amber-500/20'
-                            : 'bg-[#23272D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                            ? 'bg-amber-500 text-[#1A1203] border-amber-400 font-extrabold'
+                            : 'bg-[#0D1326] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
                         }`}
                       >
                         {tipo}
@@ -843,18 +843,18 @@ export default function AdminPage() {
             </div>
 
             {/* IMPORT EXCEL */}
-            <div className="bg-[#2E343D] border border-[#434B57] p-6 rounded-3xl shadow-xl">
+            <div className="bg-[#121A2E] border border-[#25304A] p-6 rounded-2xl">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">📊</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Importazione Diretta Excel (.xlsx) o CSV</h2>
-                  <p className="text-[11px] text-[#94A3B8]">
+                  <h2 className="text-sm font-bold text-[#E8ECF8]">Importazione Diretta Excel (.xlsx) o CSV</h2>
+                  <p className="text-[11px] text-[#8E9BBA]">
                     Carica il file Excel originale (.xlsx). Le colonne rimarranno perfettamente al loro posto.
                   </p>
                 </div>
               </div>
-              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#434B57] hover:border-amber-500/50 rounded-2xl cursor-pointer bg-[#23272D]/50 transition-all">
-                <span className="text-xs text-[#94A3B8] font-bold">
+              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#25304A] hover:border-amber-500/50 rounded-2xl cursor-pointer bg-[#0D1326]/50 transition-all">
+                <span className="text-xs text-[#8E9BBA] font-bold">
                   {caricamentoFile ? 'Caricamento in corso...' : 'Clicca per caricare file .XLSX o .CSV'}
                 </span>
                 <input
@@ -868,76 +868,76 @@ export default function AdminPage() {
             </div>
 
             {/* FORM MANUALE */}
-            <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
+            <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-8 rounded-2xl">
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">✏️</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Inserimento Singolo Quesito</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Compila il modulo per registrare manualmente una domanda</p>
+                  <h2 className="text-sm font-bold text-[#E8ECF8]">Inserimento Singolo Quesito</h2>
+                  <p className="text-[11px] text-[#8E9BBA]">Compila il modulo per registrare manualmente una domanda</p>
                 </div>
               </div>
 
               <form onSubmit={handleCreaDomanda} className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] mb-1">Testo della Domanda</label>
+                  <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Testo della Domanda</label>
                   <textarea
                     required
                     rows={3}
                     value={testo}
                     onChange={(e) => setTesto(e.target.value)}
                     placeholder="Scrivi qui il testo del quesito..."
-                    className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                    className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione A</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Opzione A</label>
                     <input
                       required
                       type="text"
                       value={opzioneA}
                       onChange={(e) => setOpzioneA(e.target.value)}
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione B</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Opzione B</label>
                     <input
                       required
                       type="text"
                       value={opzioneB}
                       onChange={(e) => setOpzioneB(e.target.value)}
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione C</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Opzione C</label>
                     <input
                       type="text"
                       value={opzioneC}
                       onChange={(e) => setOpzioneC(e.target.value)}
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Opzione D</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Opzione D</label>
                     <input
                       type="text"
                       value={opzioneD}
                       onChange={(e) => setOpzioneD(e.target.value)}
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-amber-400 mb-1">Risposta Corretta</label>
+                    <label className="block text-xs font-bold text-amber-500 mb-1">Risposta Corretta</label>
                     <select
                       value={rispostaEsatta}
                       onChange={(e) => setRispostaEsatta(e.target.value)}
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs font-bold text-amber-400 focus:outline-none cursor-pointer"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs font-bold text-amber-500 focus:outline-none cursor-pointer"
                     >
                       <option value="A">Opzione A</option>
                       <option value="B">Opzione B</option>
@@ -946,13 +946,13 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Spiegazione Didattica (Opzionale)</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Spiegazione Didattica (Opzionale)</label>
                     <input
                       type="text"
                       value={spiegazione}
                       onChange={(e) => setSpiegazione(e.target.value)}
                       placeholder="Commento didattico..."
-                      className="w-full p-3 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -960,7 +960,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={salvataggioInCorso}
-                  className="mt-2 w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  className="mt-2 w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-extrabold py-3.5 rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
                 >
                   {salvataggioInCorso ? 'Salvataggio...' : 'Salva Domanda nel Database 💾'}
                 </button>
@@ -971,23 +971,23 @@ export default function AdminPage() {
 
         {/* TAB 3: MATERIE & STATISTICHE */}
         {tabAttiva === 'materie' && (
-          <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-8">
+          <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-8 rounded-2xl flex flex-col gap-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-xl">📊</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Resoconto Totale Domande per Materia</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Panoramica esatta dei quesiti caricati sul simulatore</p>
+                  <h2 className="text-sm font-bold text-[#E8ECF8]">Resoconto Totale Domande per Materia</h2>
+                  <p className="text-[11px] text-[#8E9BBA]">Panoramica esatta dei quesiti caricati sul simulatore</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {materie.map((m) => (
-                  <div key={m.id} className="p-4 bg-[#23272D] border border-[#434B57] rounded-2xl flex flex-col justify-between">
+                  <div key={m.id} className="p-4 bg-[#0D1326] border border-[#25304A] rounded-2xl flex flex-col justify-between">
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Materia</span>
-                        <h3 className="text-sm font-extrabold text-[#F8FAFC]">{m.nome}</h3>
+                        <span className="text-[10px] font-bold text-[#8E9BBA] uppercase">Materia</span>
+                        <h3 className="text-sm font-extrabold text-[#E8ECF8]">{m.nome}</h3>
                       </div>
                       <button
                         type="button"
@@ -997,9 +997,9 @@ export default function AdminPage() {
                         Elimina ✕
                       </button>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-[#434B57]/50 flex items-center justify-between">
-                      <span className="text-xs text-[#94A3B8]">Domande nel DB:</span>
-                      <span className="text-base font-black text-amber-400">
+                    <div className="mt-4 pt-3 border-t border-[#25304A]/50 flex items-center justify-between">
+                      <span className="text-xs text-[#8E9BBA]">Domande nel DB:</span>
+                      <span className="text-base font-extrabold text-amber-500">
                         {conteggiMaterie[m.id] || 0}
                       </span>
                     </div>
@@ -1009,36 +1009,36 @@ export default function AdminPage() {
             </div>
 
             {/* CREA NUOVA MATERIA */}
-            <div className="border-t border-[#434B57] pt-6">
+            <div className="border-t border-[#25304A] pt-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-xl">➕</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Aggiungi una Nuova Materia</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Crea una nuova sezione di studio</p>
+                  <h2 className="text-sm font-bold text-[#E8ECF8]">Aggiungi una Nuova Materia</h2>
+                  <p className="text-[11px] text-[#8E9BBA]">Crea una nuova sezione di studio</p>
                 </div>
               </div>
 
               <form onSubmit={handleCreaMateria} className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Nome Materia</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Nome Materia</label>
                     <input
                       required
                       type="text"
                       value={nuovaMateriaNome}
                       onChange={(e) => setNuovaMateriaNome(e.target.value)}
                       placeholder="es. Diritto Amministrativo"
-                      className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Descrizione (Opzionale)</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Descrizione (Opzionale)</label>
                     <input
                       type="text"
                       value={nuovaMateriaDesc}
                       onChange={(e) => setNuovaMateriaDesc(e.target.value)}
                       placeholder="Descrizione sintetica..."
-                      className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1046,7 +1046,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={salvataggioInCorso}
-                  className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-extrabold py-3.5 rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
                 >
                   {salvataggioInCorso ? 'Creazione in corso...' : 'Crea Materia ✨'}
                 </button>
@@ -1057,10 +1057,10 @@ export default function AdminPage() {
 
         {/* TAB 4: ARCHIVIO DOMANDE CON SELEZIONE ED ELIMINAZIONE MULTIPLA */}
         {tabAttiva === 'archivio' && (
-          <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-6">
+          <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-8 rounded-2xl flex flex-col gap-6">
             <div>
-              <h2 className="text-sm font-bold text-[#F8FAFC]">Archivio Domande per Argomento</h2>
-              <p className="text-[11px] text-[#94A3B8] mb-4">
+              <h2 className="text-sm font-bold text-[#E8ECF8]">Archivio Domande per Argomento</h2>
+              <p className="text-[11px] text-[#8E9BBA] mb-4">
                 Seleziona una materia per consultare solo i suoi quesiti
               </p>
 
@@ -1079,12 +1079,12 @@ export default function AdminPage() {
                       }}
                       className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
                         isActive
-                          ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-black shadow-md shadow-amber-500/20'
-                          : 'bg-[#23272D] border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC]'
+                          ? 'bg-amber-500 text-[#1A1203] border-amber-400 font-extrabold'
+                          : 'bg-[#0D1326] border-[#25304A] text-[#8E9BBA] hover:text-[#E8ECF8]'
                       }`}
                     >
                       <span>{m.nome}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-[#1C2025] text-amber-400' : 'bg-[#2E343D] text-[#94A3B8]'}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-[#0D1326] text-amber-500' : 'bg-[#121A2E] text-[#8E9BBA]'}`}>
                         {count}
                       </span>
                     </button>
@@ -1094,8 +1094,8 @@ export default function AdminPage() {
             </div>
 
             {isArchivioLogica && (
-              <div className="p-3 bg-[#23272D] border border-[#434B57] rounded-2xl flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-amber-400 mr-2">Sottotipologia:</span>
+              <div className="p-3 bg-[#0D1326] border border-[#25304A] rounded-2xl flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-amber-500 mr-2">Sottotipologia:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1104,8 +1104,8 @@ export default function AdminPage() {
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer border ${
                     sottotipoArchivioFiltro === 'tutti'
-                      ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-black'
-                      : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8]'
+                      ? 'bg-amber-500 text-[#1A1203] border-amber-400 font-extrabold'
+                      : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA]'
                   }`}
                 >
                   Tutte
@@ -1120,8 +1120,8 @@ export default function AdminPage() {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer border ${
                       sottotipoArchivioFiltro === tipo
-                        ? 'bg-amber-500 text-[#1C2025] border-amber-400 font-black'
-                        : 'bg-[#2E343D] border-[#434B57] text-[#94A3B8]'
+                        ? 'bg-amber-500 text-[#1A1203] border-amber-400 font-extrabold'
+                        : 'bg-[#121A2E] border-[#25304A] text-[#8E9BBA]'
                     }`}
                   >
                     {tipo}
@@ -1132,7 +1132,7 @@ export default function AdminPage() {
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base text-[#94A3B8]">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base text-[#8E9BBA]">
                   🔍
                 </span>
                 <input
@@ -1140,13 +1140,13 @@ export default function AdminPage() {
                   value={testoRicerca}
                   onChange={(e) => setTestoRicerca(e.target.value)}
                   placeholder="Cerca testo, parola chiave o spiegazione..."
-                  className="w-full pl-10 pr-16 py-3 bg-[#23272D] border border-[#434B57] rounded-2xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500 transition-colors"
+                  className="w-full pl-10 pr-16 py-3 bg-[#0D1326] border border-[#25304A] rounded-2xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500 transition-colors"
                 />
                 {testoRicerca && (
                   <button
                     type="button"
                     onClick={() => setTestoRicerca('')}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC]"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-[#8E9BBA] hover:text-[#E8ECF8]"
                   >
                     ✕ Svuota
                   </button>
@@ -1156,11 +1156,11 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setOrdineRecenti((prev) => !prev)}
-                className="px-4 py-3 bg-[#23272D] border border-[#434B57] hover:border-amber-500/50 rounded-2xl text-xs font-bold text-[#F8FAFC] transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                className="px-4 py-3 bg-[#0D1326] border border-[#25304A] hover:border-amber-500/50 rounded-2xl text-xs font-bold text-[#E8ECF8] transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
               >
-                <span className="text-amber-400 font-black text-sm">⇅</span>
-                <span className="text-[#94A3B8]">Ordine:</span>
-                <span className="text-amber-400 font-bold">
+                <span className="text-amber-500 font-extrabold text-sm">⇅</span>
+                <span className="text-[#8E9BBA]">Ordine:</span>
+                <span className="text-amber-500 font-bold">
                   {ordineRecenti ? 'Più recenti' : 'Più vecchie'}
                 </span>
               </button>
@@ -1168,12 +1168,12 @@ export default function AdminPage() {
 
             {/* BARRA AZIONI MULTIPLE */}
             {domandeFiltrate.length > 0 && (
-              <div className="p-3.5 bg-[#1C2025] border border-[#434B57] rounded-2xl flex flex-wrap items-center justify-between gap-3">
+              <div className="p-3.5 bg-[#0D1326] border border-[#25304A] rounded-2xl flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={toggleSelezionaTuttiVisibili}
-                    className="px-3 py-1.5 bg-[#2E343D] hover:bg-[#38404c] border border-[#434B57] rounded-xl text-xs font-bold text-amber-400 cursor-pointer transition-all flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[#121A2E] hover:bg-[#1A2440] border border-[#25304A] rounded-xl text-xs font-bold text-amber-500 cursor-pointer transition-all flex items-center gap-1.5"
                   >
                     <span>☑️</span>
                     {domandeFiltrate.every((d) => selezionati.includes(d.id))
@@ -1181,8 +1181,8 @@ export default function AdminPage() {
                       : 'Seleziona tutti i visibili'}
                   </button>
 
-                  <span className="text-xs font-bold text-[#94A3B8]">
-                    Selezionati: <strong className="text-amber-400">{selezionati.length}</strong> su {domandeFiltrate.length}
+                  <span className="text-xs font-bold text-[#8E9BBA]">
+                    Selezionati: <strong className="text-amber-500">{selezionati.length}</strong> su {domandeFiltrate.length}
                   </span>
                 </div>
 
@@ -1191,7 +1191,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={handleEliminaMultipli}
                     disabled={salvataggioInCorso}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-900/30 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                   >
                     <span>🗑️</span> Elimina i {selezionati.length} quesiti selezionati
                   </button>
@@ -1200,23 +1200,23 @@ export default function AdminPage() {
             )}
 
             {caricamentoArchivio ? (
-              <div className="text-center py-10 text-xs font-bold text-amber-400">
+              <div className="text-center py-10 text-xs font-bold text-amber-500">
                 Caricamento quesiti...
               </div>
             ) : domandeFiltrate.length === 0 ? (
-              <div className="p-8 bg-[#23272D] border border-[#434B57] rounded-2xl text-center text-xs text-[#94A3B8]">
+              <div className="p-8 bg-[#0D1326] border border-[#25304A] rounded-2xl text-center text-xs text-[#8E9BBA]">
                 {testoRicerca
                   ? `Nessun quesito corrisponde alla ricerca "${testoRicerca}".`
                   : 'Nessuna domanda presente per questa materia.'}
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
-                <div className="text-[11px] font-bold text-[#94A3B8] px-1 flex items-center justify-between">
+                <div className="text-[11px] font-bold text-[#8E9BBA] px-1 flex items-center justify-between">
                   <span>
-                    Visualizzati <span className="text-amber-400 font-extrabold">{domandeFiltrate.length}</span> quesiti
+                    Visualizzati <span className="text-amber-500 font-extrabold">{domandeFiltrate.length}</span> quesiti
                   </span>
-                  <span className="text-[10px] text-[#94A3B8]">
-                    Ordinamento: <strong className="text-amber-400/90">{ordineRecenti ? 'Dalle ultime inserite' : 'Dalle prime inserite'}</strong>
+                  <span className="text-[10px] text-[#8E9BBA]">
+                    Ordinamento: <strong className="text-amber-500/90">{ordineRecenti ? 'Dalle ultime inserite' : 'Dalle prime inserite'}</strong>
                   </span>
                 </div>
 
@@ -1228,8 +1228,8 @@ export default function AdminPage() {
                       onClick={() => toggleSelezioneSingola(d.id)}
                       className={`p-4 rounded-2xl flex flex-col gap-2.5 transition-all cursor-pointer border ${
                         isChecked
-                          ? 'bg-[#2E343D] border-amber-500/80 shadow-md shadow-amber-500/10'
-                          : 'bg-[#23272D] border-[#434B57] hover:border-[#5a6575]'
+                          ? 'bg-[#121A2E] border-amber-500/80'
+                          : 'bg-[#0D1326] border-[#25304A] hover:border-[#3A4A75]'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1240,11 +1240,11 @@ export default function AdminPage() {
                             onChange={() => {}}
                             className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
                           />
-                          <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                          <span className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                             #{index + 1} (ID #{d.id})
                           </span>
                           {d.sottotipologia && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#2E343D] text-[#94A3B8] border border-[#434B57]">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#121A2E] text-[#8E9BBA] border border-[#25304A]">
                               {d.sottotipologia}
                             </span>
                           )}
@@ -1262,9 +1262,9 @@ export default function AdminPage() {
                         </button>
                       </div>
 
-                      <p className="text-xs font-bold text-[#F8FAFC] leading-relaxed">{d.testo}</p>
+                      <p className="text-xs font-bold text-[#E8ECF8] leading-relaxed">{d.testo}</p>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#94A3B8] pt-2 border-t border-[#434B57]/40">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#8E9BBA] pt-2 border-t border-[#25304A]/40">
                         <span className={d.risposta_esatta === 'A' ? 'text-emerald-400 font-bold bg-emerald-500/10 p-1.5 rounded-md' : 'p-1.5'}>
                           A: {d.opzione_a}
                         </span>
@@ -1280,8 +1280,8 @@ export default function AdminPage() {
                       </div>
 
                       {d.spiegazione && (
-                        <div className="text-[11px] text-slate-400 bg-[#1C2025]/50 p-2.5 rounded-xl border border-[#434B57]/40">
-                          <strong className="text-amber-400/80">Spiegazione: </strong>
+                        <div className="text-[11px] text-[#8E9BBA] bg-[#0D1326]/50 p-2.5 rounded-xl border border-[#25304A]/40">
+                          <strong className="text-amber-500/80">Spiegazione: </strong>
                           {d.spiegazione}
                         </div>
                       )}
@@ -1295,38 +1295,38 @@ export default function AdminPage() {
 
         {/* TAB 5: GESTIONE ACCOUNT CORSISTI */}
         {tabAttiva === 'utenti' && (
-          <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl flex flex-col gap-8">
+          <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-8 rounded-2xl flex flex-col gap-8">
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-xl">👤</span>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F8FAFC]">Registra Nuovo Studente</h2>
-                  <p className="text-[11px] text-[#94A3B8]">Crea le credenziali d&apos;accesso per un corsista</p>
+                  <h2 className="text-sm font-bold text-[#E8ECF8]">Registra Nuovo Studente</h2>
+                  <p className="text-[11px] text-[#8E9BBA]">Crea le credenziali d&apos;accesso per un corsista</p>
                 </div>
               </div>
 
               <form onSubmit={handleCreaStudente} className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Email Studente</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Email Studente</label>
                     <input
                       required
                       type="email"
                       value={nuovoUserEmail}
                       onChange={(e) => setNuovoUserEmail(e.target.value)}
                       placeholder="studente@esempio.it"
-                      className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">Password Iniziale</label>
+                    <label className="block text-xs font-bold text-[#8E9BBA] mb-1">Password Iniziale</label>
                     <input
                       required
                       type="password"
                       value={nuovoUserPassword}
                       onChange={(e) => setNuovoUserPassword(e.target.value)}
                       placeholder="Minimo 6 caratteri"
-                      className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+                      className="w-full p-3.5 bg-[#0D1326] border border-[#25304A] rounded-xl text-xs text-[#E8ECF8] focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1334,32 +1334,32 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={salvataggioInCorso}
-                  className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-extrabold py-3.5 rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
                 >
                   {salvataggioInCorso ? 'Registrazione...' : 'Crea Account Studente 🚀'}
                 </button>
               </form>
             </div>
 
-            <div className="border-t border-[#434B57] pt-6">
+            <div className="border-t border-[#25304A] pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-[#F8FAFC]">Account Studenti Attivi</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Gestisci gli utenti abilitati ad accedere al simulatore</p>
+                  <h3 className="text-sm font-bold text-[#E8ECF8]">Account Studenti Attivi</h3>
+                  <p className="text-[11px] text-[#8E9BBA]">Gestisci gli utenti abilitati ad accedere al simulatore</p>
                 </div>
                 <button
                   type="button"
                   onClick={caricaStudenti}
-                  className="text-xs font-bold text-amber-400 hover:text-amber-300"
+                  className="text-xs font-bold text-amber-500 hover:text-amber-400"
                 >
                   Aggiorna 🔄
                 </button>
               </div>
 
               {caricamentoStudenti ? (
-                <div className="text-center py-6 text-xs text-amber-400">Caricamento account...</div>
+                <div className="text-center py-6 text-xs text-amber-500">Caricamento account...</div>
               ) : studenti.length === 0 ? (
-                <div className="p-6 bg-[#23272D] border border-[#434B57] rounded-2xl text-center text-xs text-[#94A3B8]">
+                <div className="p-6 bg-[#0D1326] border border-[#25304A] rounded-2xl text-center text-xs text-[#8E9BBA]">
                   Nessun profilo registrato al momento.
                 </div>
               ) : (
@@ -1367,13 +1367,13 @@ export default function AdminPage() {
                   {studenti.map((s) => (
                     <div
                       key={s.id}
-                      className="p-3.5 bg-[#23272D] border border-[#434B57] rounded-2xl flex items-center justify-between"
+                      className="p-3.5 bg-[#0D1326] border border-[#25304A] rounded-2xl flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-base">🎓</span>
                         <div>
-                          <div className="text-xs font-bold text-[#F8FAFC]">{s.email}</div>
-                          <div className="text-[10px] text-[#94A3B8]">
+                          <div className="text-xs font-bold text-[#E8ECF8]">{s.email}</div>
+                          <div className="text-[10px] text-[#8E9BBA]">
                             Iscritto il: {s.created_at ? new Date(s.created_at).toLocaleDateString('it-IT') : 'N/D'}
                           </div>
                         </div>
