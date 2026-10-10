@@ -66,7 +66,7 @@ export default function SimulazionePersonalizzataPage() {
     .reduce((acc, m) => acc + Number(config[m.id] || 0), 0);
 
   const materiaLogica = materie.find((m) => m.nome.toLowerCase() === 'logica');
-  const totaleLogica = materiaLogica 
+  const totaleLogica = materiaLogica
     ? Object.values(configLogica).reduce((a, b) => a + Number(b || 0), 0)
     : 0;
 
@@ -185,7 +185,7 @@ export default function SimulazionePersonalizzataPage() {
 
   if (caricamento) {
     return (
-      <main className="min-h-screen bg-[#23272D] flex items-center justify-center text-amber-400 font-bold font-sans">
+      <main className="min-h-screen bg-[#0B1220] flex items-center justify-center text-amber-500 font-bold font-sans">
         Caricamento configuratore...
       </main>
     );
@@ -194,29 +194,29 @@ export default function SimulazionePersonalizzataPage() {
   // 1. SCHERMATA DI CONFIGURAZIONE
   if (stato === 'configurazione') {
     return (
-      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-6 lg:p-10 font-sans flex flex-col items-center">
-        <div className="w-full max-w-2xl">
-          <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl mb-6">
-            <Link href="/" className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1.5">
+      <main className="min-h-screen bg-[#0B1220] text-[#E8ECF8] p-6 lg:p-10 font-sans flex flex-col items-center">
+        <div className="w-full max-w-3xl">
+          <div className="flex items-center justify-between bg-[#121A2E] border border-[#25304A] px-5 py-4 rounded-2xl mb-6">
+            <Link href="/" className="text-sm font-semibold text-[#8E9BBA] hover:text-amber-500 flex items-center gap-1.5 transition-colors">
               ← Torna alla Home
             </Link>
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-amber-500 uppercase tracking-[0.14em]">
               Simulazione su Misura
             </span>
           </div>
 
-          <div className="bg-[#2E343D] border border-[#434B57] p-6 lg:p-8 rounded-3xl shadow-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl">
+          <div className="bg-[#121A2E] border border-[#25304A] p-6 lg:p-9 rounded-2xl">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 shrink-0 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center text-2xl">
                 ⚙️
               </div>
               <div>
-                <h1 className="text-xl font-black text-[#F8FAFC]">Componi la tua Prova d&apos;Esame</h1>
-                <p className="text-xs text-[#94A3B8]">Scegli quante domande casuali estrarre per ciascuna materia e tipologia</p>
+                <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#E8ECF8]">Componi la tua Prova d&apos;Esame</h1>
+                <p className="text-sm text-[#8E9BBA] mt-1">Scegli quante domande casuali estrarre per ciascuna materia e tipologia</p>
               </div>
             </div>
 
-            <div className="my-6 flex flex-col gap-3">
+            <div className="my-7 flex flex-col gap-3.5">
               {materie.map((m) => {
                 const isLogica = m.nome.toLowerCase() === 'logica';
 
@@ -224,28 +224,28 @@ export default function SimulazionePersonalizzataPage() {
                   return (
                     <div
                       key={m.id}
-                      className="p-4 bg-[#23272D] border border-amber-500/30 rounded-2xl flex flex-col gap-3"
+                      className="p-5 bg-amber-500/5 border border-amber-500/30 rounded-2xl flex flex-col gap-3"
                     >
-                      <div className="flex items-center justify-between border-b border-[#434B57]/50 pb-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                        <div className="flex items-center gap-2.5">
                           <span className="text-lg">🧩</span>
-                          <span className="text-sm font-black text-amber-400 uppercase tracking-wide">
+                          <span className="text-sm font-extrabold text-amber-500 uppercase tracking-wide">
                             {m.nome} (Per Sottocategoria)
                           </span>
                         </div>
-                        <span className="text-xs font-bold text-amber-300">
+                        <span className="text-sm font-bold text-[#E8ECF8]">
                           {totaleLogica} domande tot.
                         </span>
                       </div>
 
-                      <div className="flex flex-col gap-2.5 pt-1">
+                      <div className="flex flex-col gap-3 pt-1">
                         {SOTTOTIPI_LOGICA.map((sub) => (
-                          <div key={sub.id} className="flex items-center justify-between pl-2">
-                            <div className="flex items-center gap-2">
+                          <div key={sub.id} className="flex items-center justify-between pl-1">
+                            <div className="flex items-center gap-2.5">
                               <span>{sub.icona}</span>
-                              <span className="text-xs font-bold text-[#F8FAFC]">{sub.titolo}</span>
+                              <span className="text-sm font-bold text-[#E8ECF8]">{sub.titolo}</span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5">
                               <input
                                 type="number"
                                 min="0"
@@ -255,9 +255,9 @@ export default function SimulazionePersonalizzataPage() {
                                   const val = Math.max(0, parseInt(e.target.value) || 0);
                                   setConfigLogica((prev) => ({ ...prev, [sub.id]: val }));
                                 }}
-                                className="w-16 p-1.5 bg-[#2E343D] border border-[#434B57] rounded-lg text-center text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                                className="w-16 p-2 bg-[#121A2E] border border-[#2A3963] rounded-xl text-center text-sm font-extrabold text-amber-500 focus:outline-none focus:border-amber-500"
                               />
-                              <span className="text-[11px] text-[#94A3B8]">domande</span>
+                              <span className="text-xs text-[#8E9BBA]">domande</span>
                             </div>
                           </div>
                         ))}
@@ -269,14 +269,14 @@ export default function SimulazionePersonalizzataPage() {
                 return (
                   <div
                     key={m.id}
-                    className="flex items-center justify-between p-4 bg-[#23272D] border border-[#434B57] rounded-2xl"
+                    className="flex items-center justify-between px-5 py-4 bg-[#0D1326] border border-[#1F2A4A] rounded-2xl"
                   >
                     <div>
-                      <span className="text-sm font-bold text-[#F8FAFC] block">{m.nome}</span>
-                      <span className="text-[11px] text-[#94A3B8]">Numero quesiti:</span>
+                      <span className="text-base font-extrabold text-[#E8ECF8] block">{m.nome}</span>
+                      <span className="text-xs text-[#8E9BBA]">Numero quesiti:</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <input
                         type="number"
                         min="0"
@@ -286,24 +286,24 @@ export default function SimulazionePersonalizzataPage() {
                           const val = Math.max(0, parseInt(e.target.value) || 0);
                           setConfig((prev) => ({ ...prev, [m.id]: val }));
                         }}
-                        className="w-20 p-2 bg-[#2E343D] border border-[#434B57] rounded-xl text-center text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                        className="w-20 p-2.5 bg-[#121A2E] border border-[#2A3963] rounded-xl text-center text-base font-extrabold text-amber-500 focus:outline-none focus:border-amber-500"
                       />
-                      <span className="text-xs text-[#94A3B8]">domande</span>
+                      <span className="text-sm text-[#8E9BBA]">domande</span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="p-4 bg-[#3B332B] border border-[#855325] rounded-2xl flex items-center justify-between mb-6">
-              <span className="text-xs font-bold text-[#FFFBEB]">Totale Domande Combinate:</span>
-              <span className="text-lg font-black text-amber-400">{totaleSelezionato} quesiti</span>
+            <div className="px-5 py-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between mb-6">
+              <span className="text-sm font-bold text-[#E8ECF8]">Totale Domande Combinate:</span>
+              <span className="text-xl font-extrabold text-amber-500">{totaleSelezionato} quesiti</span>
             </div>
 
             <button
               onClick={avviaSimulazione}
               disabled={avvioInCorso || totaleSelezionato === 0}
-              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-bold py-4 rounded-xl text-base transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
             >
               {avvioInCorso ? 'Composizione test casuale in corso...' : 'Inizia Simulazione Personalizzata 🚀'}
             </button>
@@ -325,44 +325,44 @@ export default function SimulazionePersonalizzataPage() {
     const percentuale = Math.round((corrette / (domandeQuiz.length || 1)) * 100);
 
     return (
-      <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md bg-[#2E343D] p-8 rounded-3xl border border-[#434B57] shadow-2xl text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-3xl mx-auto mb-4">
+      <main className="min-h-screen bg-[#0B1220] text-[#E8ECF8] flex flex-col items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-md bg-[#121A2E] p-9 rounded-2xl border border-[#25304A] text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center text-3xl mx-auto mb-5">
             🎯
           </div>
-          <h1 className="text-2xl font-black text-[#F8FAFC] mb-1">Simulazione Personalizzata Terminata!</h1>
-          <p className="text-xs text-[#94A3B8] mb-6">Test combinato multimateria</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#E8ECF8] mb-1.5">Simulazione Personalizzata Terminata!</h1>
+          <p className="text-sm text-[#8E9BBA] mb-7">Test combinato multimateria</p>
 
-          <div className="p-5 bg-[#23272D] rounded-2xl border border-[#434B57] mb-6">
-            <div className="text-4xl font-black text-amber-400 mb-1">{percentuale}%</div>
-            <p className="text-[11px] text-[#94A3B8] uppercase tracking-wider font-bold">Esito Finale</p>
+          <div className="p-6 bg-[#0D1326] rounded-2xl border border-[#1F2A4A] mb-6">
+            <div className="text-5xl font-extrabold text-amber-500 mb-1.5">{percentuale}%</div>
+            <p className="text-xs text-[#8E9BBA] uppercase tracking-[0.12em] font-bold">Esito Finale</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center mb-8">
-            <div className="p-3 bg-[#23272D] rounded-xl border border-emerald-500/30">
-              <div className="text-emerald-400 text-lg font-black">{corrette}</div>
-              <div className="text-[10px] text-[#94A3B8]">Esatte</div>
+          <div className="grid grid-cols-3 gap-3 text-center mb-8">
+            <div className="p-3.5 bg-[#0D1326] rounded-xl border border-emerald-500/30">
+              <div className="text-emerald-400 text-xl font-extrabold">{corrette}</div>
+              <div className="text-xs text-[#8E9BBA] mt-0.5">Esatte</div>
             </div>
-            <div className="p-3 bg-[#23272D] rounded-xl border border-rose-500/30">
-              <div className="text-rose-400 text-lg font-black">{errate}</div>
-              <div className="text-[10px] text-[#94A3B8]">Errate</div>
+            <div className="p-3.5 bg-[#0D1326] rounded-xl border border-rose-500/30">
+              <div className="text-rose-400 text-xl font-extrabold">{errate}</div>
+              <div className="text-xs text-[#8E9BBA] mt-0.5">Errate</div>
             </div>
-            <div className="p-3 bg-[#23272D] rounded-xl border border-[#434B57]">
-              <div className="text-[#94A3B8] text-lg font-black">{nonRisposte}</div>
-              <div className="text-[10px] text-[#94A3B8]">Saltate</div>
+            <div className="p-3.5 bg-[#0D1326] rounded-xl border border-[#1F2A4A]">
+              <div className="text-[#8E9BBA] text-xl font-extrabold">{nonRisposte}</div>
+              <div className="text-xs text-[#8E9BBA] mt-0.5">Saltate</div>
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
             <button
               onClick={() => setStato('configurazione')}
-              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-bold py-3.5 rounded-xl text-sm transition-all active:scale-[0.99] cursor-pointer"
             >
               Configura Nuova Prova
             </button>
             <Link
               href="/"
-              className="w-full bg-[#23272D] hover:border-amber-500/50 text-[#F8FAFC] font-bold py-3.5 rounded-xl text-xs border border-[#434B57] transition-all text-center"
+              className="w-full bg-[#0D1326] hover:border-amber-500/50 text-[#E8ECF8] font-bold py-3.5 rounded-xl text-sm border border-[#1F2A4A] transition-all text-center"
             >
               Torna alla Dashboard
             </Link>
@@ -385,42 +385,42 @@ export default function SimulazionePersonalizzataPage() {
   const progressoPercent = Math.round(((indiceCorrente + 1) / (domandeQuiz.length || 1)) * 100);
 
   return (
-    <main className="min-h-screen bg-[#23272D] text-[#F8FAFC] p-4 lg:p-8 font-sans flex flex-col items-center">
-      <div className="w-full max-w-2xl flex flex-col gap-5">
-        <div className="flex items-center justify-between bg-[#2E343D] border border-[#434B57] p-4 rounded-2xl shadow-sm">
+    <main className="min-h-screen bg-[#0B1220] text-[#E8ECF8] p-4 lg:p-8 font-sans flex flex-col items-center">
+      <div className="w-full max-w-3xl flex flex-col gap-5">
+        <div className="flex items-center justify-between bg-[#121A2E] border border-[#25304A] px-5 py-4 rounded-2xl">
           <button
             onClick={() => {
               if (window.confirm('Sei sicuro di voler uscire? I progressi andranno persi.')) {
                 setStato('configurazione');
               }
             }}
-            className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 cursor-pointer"
+            className="text-sm font-semibold text-[#8E9BBA] hover:text-amber-500 cursor-pointer transition-colors"
           >
             ← Annulla
           </button>
-          <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+          <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-amber-500">
             {domandaAttuale?.materia_nome || 'Simulazione'}
           </span>
-          <span className="text-xs font-bold text-[#94A3B8] bg-[#23272D] px-2.5 py-1 rounded-lg border border-[#434B57]">
+          <span className="text-sm font-bold text-[#8E9BBA] bg-[#0D1326] px-3 py-1 rounded-lg border border-[#1F2A4A]">
             {indiceCorrente + 1} / {domandeQuiz.length}
           </span>
         </div>
 
-        <div className="w-full bg-[#1C2025] h-2 rounded-full overflow-hidden border border-[#434B57]/50">
+        <div className="w-full bg-[#0D1326] h-2 rounded-full overflow-hidden border border-[#1F2A4A]">
           <div
             className="bg-amber-500 h-full transition-all duration-300 rounded-full"
             style={{ width: `${progressoPercent}%` }}
           />
         </div>
 
-        <div className="bg-[#2E343D] p-6 lg:p-8 rounded-3xl border border-[#434B57] shadow-xl">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-[#23272D] text-amber-400 border border-amber-500/30">
+        <div className="bg-[#121A2E] p-6 lg:p-9 rounded-2xl border border-[#25304A]">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-extrabold uppercase tracking-[0.1em] px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30">
               Quesito #{indiceCorrente + 1} • {domandaAttuale?.materia_nome}
             </span>
           </div>
 
-          <p className="text-base lg:text-lg font-bold text-[#F8FAFC] leading-relaxed mb-8">
+          <p className="text-lg lg:text-xl font-bold text-[#E8ECF8] leading-relaxed mb-8">
             {domandaAttuale?.testo}
           </p>
 
@@ -430,18 +430,18 @@ export default function SimulazionePersonalizzataPage() {
               const isCorretta = opt.lettera === domandaAttuale?.risposta_esatta;
               const giaRisposto = rispostaData !== undefined;
 
-              let stileScatola = 'bg-[#23272D] border-[#434B57] hover:border-amber-500/60 text-[#F8FAFC]';
-              let stileBadge = 'bg-[#2E343D] text-[#94A3B8] border-[#434B57]';
+              let stileScatola = 'bg-[#0D1326] border-[#1F2A4A] hover:border-amber-500/50 text-[#E8ECF8]';
+              let stileBadge = 'bg-[#121A2E] text-[#8E9BBA] border-[#25304A]';
 
               if (giaRisposto) {
                 if (isCorretta) {
                   stileScatola = 'bg-emerald-950/40 border-emerald-500 text-emerald-100';
-                  stileBadge = 'bg-emerald-500 text-[#1C2025] font-black border-emerald-400';
+                  stileBadge = 'bg-emerald-500 text-[#1A1203] font-black border-emerald-400';
                 } else if (isSelezionata && !isCorretta) {
                   stileScatola = 'bg-rose-950/40 border-rose-500 text-rose-100';
                   stileBadge = 'bg-rose-500 text-white font-black border-rose-400';
                 } else {
-                  stileScatola = 'bg-[#23272D]/50 border-[#434B57]/40 text-[#64748B] opacity-60';
+                  stileScatola = 'bg-[#0D1326]/50 border-[#1F2A4A]/40 text-[#64748B] opacity-60';
                 }
               }
 
@@ -450,10 +450,10 @@ export default function SimulazionePersonalizzataPage() {
                   key={opt.lettera}
                   onClick={() => selezionaRisposta(opt.lettera)}
                   disabled={giaRisposto}
-                  className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 text-xs lg:text-sm font-medium cursor-pointer ${stileScatola}`}
+                  className={`w-full p-4 rounded-xl border text-left transition-all flex items-center justify-between gap-3 text-sm lg:text-base font-medium cursor-pointer ${stileScatola}`}
                 >
                   <div className="flex items-center gap-3.5 flex-1">
-                    <span className={`w-8 h-8 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${stileBadge}`}>
+                    <span className={`w-9 h-9 rounded-lg border flex items-center justify-center font-bold text-sm shrink-0 ${stileBadge}`}>
                       {opt.lettera}
                     </span>
                     <span className="leading-snug">{opt.testo}</span>
@@ -474,7 +474,7 @@ export default function SimulazionePersonalizzataPage() {
             <div className="mb-6 pt-2">
               <button
                 onClick={() => setMostraSpiegazione(!mostraSpiegazione)}
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="text-sm font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>💡</span>
                 {mostraSpiegazione ? 'Nascondi Spiegazione Normativa' : 'Spiegamelo (Commento Didattico)'}
@@ -482,26 +482,26 @@ export default function SimulazionePersonalizzataPage() {
               </button>
 
               {mostraSpiegazione && (
-                <div className="mt-3 p-4 bg-[#3D2E1E] rounded-2xl border border-amber-500/30 text-xs text-amber-200 leading-relaxed">
-                  <strong className="block text-amber-400 mb-1 font-bold">Riferimento Didattico / Giuridico:</strong>
+                <div className="mt-3 p-5 bg-amber-500/10 rounded-xl border border-amber-500/30 text-sm text-amber-100 leading-relaxed">
+                  <strong className="block text-amber-500 mb-1 font-bold">Riferimento Didattico / Giuridico:</strong>
                   {domandaAttuale.spiegazione}
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t border-[#434B57] gap-3">
+          <div className="flex items-center justify-between pt-5 border-t border-[#25304A] gap-3">
             <button
               onClick={domandaPrecedente}
               disabled={indiceCorrente === 0}
-              className="px-4 py-3 bg-[#23272D] border border-[#434B57] text-[#94A3B8] hover:text-[#F8FAFC] disabled:opacity-30 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
+              className="px-5 py-3 bg-[#0D1326] border border-[#1F2A4A] text-[#8E9BBA] hover:text-[#E8ECF8] disabled:opacity-30 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
             >
               ← Precedente
             </button>
 
             <button
               onClick={prossimaDomanda}
-              className="flex-1 bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3 rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-[0.99] cursor-pointer"
+              className="flex-1 bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.99] cursor-pointer"
             >
               {indiceCorrente === domandeQuiz.length - 1 ? 'Concludi Simulazione 🏁' : 'Prossima Domanda →'}
             </button>
