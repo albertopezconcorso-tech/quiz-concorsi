@@ -30,30 +30,30 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#23272D] flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md bg-[#2E343D] border border-[#434B57] p-8 rounded-3xl shadow-2xl">
+    <main className="min-h-screen bg-[#0B1220] flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md bg-[#121A2E] border border-[#25304A] p-9 rounded-2xl">
         {/* LOGO */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl mb-3 shadow-inner">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center text-3xl mb-4">
             🏛️
           </div>
-          <h1 className="text-xl font-black uppercase tracking-wider text-[#F8FAFC]">
+          <h1 className="text-2xl font-extrabold uppercase tracking-[0.14em] text-[#E8ECF8]">
             Quiz Concorsi
           </h1>
-          <p className="text-xs text-[#94A3B8] mt-1 text-center">
+          <p className="text-sm text-[#8E9BBA] mt-2 text-center">
             Accedi con le credenziali fornite dal docente
           </p>
         </div>
 
         {errore && (
-          <div className="mb-4 p-3 bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs rounded-xl font-bold text-center">
+          <div className="mb-5 p-3.5 bg-rose-950/40 border border-rose-500/40 text-rose-300 text-sm rounded-xl font-bold text-center">
             {errore}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
+            <label className="block text-sm font-semibold text-[#8E9BBA] mb-2">
               Email
             </label>
             <input
@@ -62,12 +62,12 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nome@esempio.it"
-              className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+              className="w-full px-4 py-3.5 bg-[#0D1326] border border-[#1F2A4A] rounded-xl text-sm text-[#E8ECF8] placeholder:text-[#5B6788] focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
+            <label className="block text-sm font-semibold text-[#8E9BBA] mb-2">
               Password
             </label>
             <input
@@ -76,14 +76,14 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full p-3.5 bg-[#23272D] border border-[#434B57] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-amber-500"
+              className="w-full px-4 py-3.5 bg-[#0D1326] border border-[#1F2A4A] rounded-xl text-sm text-[#E8ECF8] placeholder:text-[#5B6788] focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={caricamento}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-[#1C2025] font-black py-3.5 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] cursor-pointer disabled:opacity-50 mt-2"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-[#1A1203] font-bold py-3.5 rounded-xl text-sm transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50 mt-2"
           >
             {caricamento ? 'Accesso in corso...' : 'Accedi al Simulatore'}
           </button>
